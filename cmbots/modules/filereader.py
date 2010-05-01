@@ -21,9 +21,11 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
     entries: List[Entry] = []
     dfs = pd.read_excel(filename, sheet_name=None)
     for sheetname, df in dfs.items():
-        df = df.astype(str)
         if not sheetname[0].isdigit():
             continue
+
+        df = df.astype(str)
+        consignor = df.columns[8]
 
         while 'Box' not in df.columns:
             df.columns = df.iloc[0]
@@ -54,6 +56,9 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = row[qindex] if row[qindex].isnumeric() else "1"
                     # entry["quantity"] = q
                     entry["location"] = "ABDN"
+                    if entry["cnor"] != "":
+                        entry["cnor"] = consignor
+
                     entries.append(entry)
                     count += 1
 
@@ -66,6 +71,9 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = "1" if row[qindex + 1] == "X" else row[qindex + 1]
                     # entry["quantity"] = q
                     entry["location"] = "HBY"
+                    if entry["cnor"] != "":
+                        entry["cnor"] = consignor
+
                     entries.append(entry)
                     count += 1
 

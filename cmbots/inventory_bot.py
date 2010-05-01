@@ -39,7 +39,7 @@ if not entries:
     pyautogui.alert("No entries found in the spreadsheet.")
     exit()
 
-print(entries[1])
+print(entries[0])
 
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
