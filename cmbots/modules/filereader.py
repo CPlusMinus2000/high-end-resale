@@ -32,11 +32,19 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
             df = df[1:]
 
         titles = list(df.iloc[0])
+        print(titles)
         if any([t not in titles for t in ATTRS.values()]):
             missing = [t for t in ATTRS.values() if t not in titles]
-            raise ValueError(
-                "Excel sheet is missing the columns: " + ", ".join(missing)
-            )
+            cols = list(df.columns)
+            for m in missing:
+                if m in cols and m not in titles:
+                    titles[cols.index(m)] = m
+
+            missing = [m for m in missing if m not in titles]
+            if missing:
+                raise ValueError(
+                    "Excel sheet is missing the columns: " + ", ".join(missing)
+                )
 
         indices = {
             attr: titles.index(value) + 1
@@ -56,7 +64,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = row[qindex] if row[qindex].isnumeric() else "1"
                     # entry["quantity"] = q
                     entry["location"] = "ABDN"
-                    if entry["cnor"] != "":
+                    if entry["cnor"] != "nan" and entry["cnor"].strip():
                         entry["cnor"] = consignor
 
                     entries.append(entry)
@@ -71,7 +79,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = "1" if row[qindex + 1] == "X" else row[qindex + 1]
                     # entry["quantity"] = q
                     entry["location"] = "HBY"
-                    if entry["cnor"] != "":
+                    if entry["cnor"] != "nan" and entry["cnor"].strip():
                         entry["cnor"] = consignor
 
                     entries.append(entry)
