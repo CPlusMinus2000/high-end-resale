@@ -11,6 +11,8 @@ from modules.filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
+else:
+    send_keys = lambda t: pyautogui.write(t, interval=0.05)
 
 
 # So here's how the bot is going to need to work
@@ -21,7 +23,7 @@ if "Windows" in platform():
 xls = os.path.exists(c("stock.xls"))
 xlsx = os.path.exists(c("stock.xlsx"))
 
-if not (xls or xlsx):
+if not xls or xlsx:
     pyautogui.alert(
         "Please save the stock spreadsheet in the folder bot_data "
         "with the name stock.xls or stock.xlsx. and try again."
