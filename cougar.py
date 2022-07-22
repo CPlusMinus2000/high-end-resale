@@ -86,7 +86,7 @@ class Money:
         if self.amt < 0:
             return f"-${-self.amt:,.2f}"
         
-        return "${:,.2f}".format(self.amt)
+        return "{:,.2f}".format(self.amt)
     
     def __repr__(self):
         return str(self)
