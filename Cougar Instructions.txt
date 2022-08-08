@@ -1,0 +1,6 @@
+Instructions for using the program to make Excel reports:
+ 1. Put the text file in the cougar_data folder
+ 2. Make sure the text file has the name "CN [month] item sold.txt"
+ 3. Double-click on the file called "cougar".
+
+After this, you should have an Excel document.
