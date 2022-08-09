@@ -1,10 +1,11 @@
-# %%
+
 from decimal import Decimal
 from glob import glob
 from collections import namedtuple, defaultdict
 from datetime import datetime
 
 import pandas as pd
+import xlsxwriter
 
 
 MONTHS = [
@@ -12,7 +13,6 @@ MONTHS = [
     "July", "Aug", "Sept", "Oct", "Nov", "Dec"
 ]
 
-# %%
 def is_inventory(s):
     """
     Checks if a piece of text holds an inventory item.
@@ -22,7 +22,6 @@ def is_inventory(s):
         s.startswith("CC") and s[2:].isdigit() or \
         s.startswith("CN") and s[2:].isdigit()
 
-# %%
 # Define a relevant money class and namedtuple
 
 class Money:
@@ -81,16 +80,13 @@ InventoryItem = namedtuple(
 
 InvoiceItem = namedtuple(
     "InvoiceItem",
-    ["invoice_number", "mult", "cn_number", "inv_date", "amt"]
+    ["invoice_number", "more_than_1", "cn_number", "inv_date", "amt"]
 )
 
 if __name__ == "__main__":
-    # %%
     # Parse the CN, if it exists
-    both = True
-
     cnfiles = glob("cougar_data/*CN*.txt")
-    if len(cnfiles) >= 1:
+    for cnfile in cnfiles:
         cnfile = cnfiles[0]
         with open(cnfile, "r") as f:
             cn = f.read()
@@ -100,7 +96,11 @@ if __name__ == "__main__":
             None
         )
 
-        # %%
+        year = next(
+            (i for i in range(2022, 10000) if str(i) in cnfile),
+            None
+        )
+
         cn_items, i = [], 0
         cn_lines = cn.splitlines()
         while i < len(cn_lines):
@@ -128,31 +128,39 @@ if __name__ == "__main__":
                 
                 cn_items.append(InventoryItem(
                     cn_number, str(cn_date), linestock, description,
-                    location, quantity, str(price), status, str(stat_date)
+                    location, quantity, price.amt, status, str(stat_date)
                 ))
 
             else:
                 i += 1
 
-        # %%
+        writer = pd.ExcelWriter(f"cougar_data/{month}_{year} ap.xlsx")
+
         df = pd.DataFrame(cn_items, columns=InventoryItem._fields)
         df = df.set_index("cn_number")
-        df.to_excel(f"cougar_data/{month}_items.xlsx", freeze_panes=(1, 0))
-    
-    else:
-        both = False
+        df["price"] = df["price"].astype(float)
+        df.to_excel(writer, freeze_panes=(1, 0))
 
-    # %%
+        workbook = writer.book
+        worksheet = writer.sheets["Sheet1"]
+
+        num_format = workbook.add_format({'num_format': '######0.00'})
+        worksheet.set_column("G:G", None, num_format)
+        writer.save()
+
     # Now parse the CC
-
     ccfiles = glob("cougar_data/*CC*.txt")
-    if len(ccfiles) >= 1:
-        ccfile = ccfiles[0]
+    for ccfile in ccfiles:
         with open(ccfile, "r") as f:
             cc = f.read()
         
         month = next(
             (m for m in MONTHS if m in ccfile),
+            None
+        )
+
+        year = next(
+            (i for i in range(2022, 10000) if str(i) in cnfile),
             None
         )
 
@@ -162,6 +170,10 @@ if __name__ == "__main__":
                 contents = line.split('/')
                 invoice_number = contents[0].strip().split()[-1]
                 cn_number = contents[1].strip()
+                backlen = len(cn_number.split('-')[-1])
+                if backlen > 4:
+                    cn_number = cn_number[:-(backlen - 4)]
+                
                 mult = 'X' if len(contents[2]) > 2 else ''
                 ind = next(
                     i for i, t in enumerate(contents)
@@ -174,42 +186,51 @@ if __name__ == "__main__":
 
                 amt = Money(contents[-1].split('$')[-1])
                 invoices.append(InvoiceItem(
-                    invoice_number, mult, cn_number, str(inv_date), str(amt)
+                    invoice_number, mult, cn_number, str(inv_date), amt.amt
                 ))
+        
+        writer = pd.ExcelWriter(f"cougar_data/{month} {year} item_sold.xlsx", engine='xlsxwriter')
 
-        df = pd.DataFrame(invoices, columns=InventoryItem._fields)
+        df = pd.DataFrame(invoices, columns=InvoiceItem._fields)
         df = df.set_index("invoice_number")
-        df.to_excel(f"cougar_data/{month}_invoices.xlsx", freeze_panes=(1, 0))
-    
-    else:
-        both = False
+        
+        # Convert amt column to float
+        df["amt"] = df["amt"].astype(float)
+        df.to_excel(writer, freeze_panes=(1, 0), float_format='%.2f')
+
+        workbook = writer.book
+        worksheet = writer.sheets["Sheet1"]
+
+        num_format = workbook.add_format({'num_format': '######0.00'})
+        worksheet.set_column("E:E", None, num_format)
+        writer.save()
 
     # Compare the daily totals for the CN and CC
 
-    if both:
-        cn_dict, cc_dict = defaultdict(Money), defaultdict(Money)
-        for item in cn_items:
-            cn_dict[item.stat_date] += Money(item.price) * item.quantity
+    # if both:
+    #     cn_dict, cc_dict = defaultdict(Money), defaultdict(Money)
+    #     for item in cn_items:
+    #         cn_dict[item.stat_date] += Money(item.price) * item.quantity
 
-        for item in invoices:
-            cc_dict[item.inv_date] += Money(item.amt)
+    #     for item in invoices:
+    #         cc_dict[item.inv_date] += Money(item.amt)
 
-        dates = sorted(cn_dict.keys() | cc_dict.keys())
-        cn_list, cc_list, diff_list = [], [], []
-        for d in dates:
-            cn_list.append(cn_dict.get(d))
-            cc_list.append(cc_dict.get(d))
-            cnd = Money() if cn_dict.get(d) is None else cn_dict.get(d)
-            ccd = Money() if cc_dict.get(d) is None else cc_dict.get(d)
-            diff_list.append(cnd - ccd)
+    #     dates = sorted(cn_dict.keys() | cc_dict.keys())
+    #     cn_list, cc_list, diff_list = [], [], []
+    #     for d in dates:
+    #         cn_list.append(cn_dict.get(d))
+    #         cc_list.append(cc_dict.get(d))
+    #         cnd = Money() if cn_dict.get(d) is None else cn_dict.get(d)
+    #         ccd = Money() if cc_dict.get(d) is None else cc_dict.get(d)
+    #         diff_list.append(cnd - ccd)
 
-        # Turn the lists into a dataframe
-        df = pd.DataFrame(
-            {
-                "CN": cn_list,
-                "CC": cc_list,
-                "Diff": diff_list
-            }, index=dates
-        )
+    #     # Turn the lists into a dataframe
+    #     df = pd.DataFrame(
+    #         {
+    #             "CN": cn_list,
+    #             "CC": cc_list,
+    #             "Diff": diff_list
+    #         }, index=dates
+    #     )
 
-        df.to_excel(f"cougar_data/{month}_totals.xlsx")
+    #     df.to_excel(f"cougar_data/{month} {year} totals.xlsx")
