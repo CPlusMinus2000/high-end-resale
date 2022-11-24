@@ -6,7 +6,6 @@ import pandas as pd
 from dataclasses import dataclass
 
 import pyautogui
-import textract
 from platform import platform
 
 if "Windows" in platform():
