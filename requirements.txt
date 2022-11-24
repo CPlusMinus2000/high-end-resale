@@ -1,2 +1,7 @@
 xlsxwriter
+numpy
 pandas
+pytesseract
+textract
+pyautogui
+pyperclip
