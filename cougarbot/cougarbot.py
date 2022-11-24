@@ -1,28 +1,81 @@
 
 import time
-from typing import Dict
+from typing import List
 
 import pandas as pd
-from collections import namedtuple
+from dataclasses import dataclass
 
 import pyautogui
 import textract
-from pywinauto.keyboard import send_keys
+from platform import platform
 
-Entry = namedtuple(
-    "Entry",
-    [
-        "index", "code", "description", "location",
-        "cost", "price", "notes"
-    ]
-)
+if "Windows" in platform():
+    from pywinauto.keyboard import send_keys
+
+
+@dataclass
+class Entry:
+    index: str = ""
+    code: str = ""
+    description: str = ""
+    location: str = ""
+    quantity: str = ""
+    cost: str = ""
+    price: str = ""
+    notes: str = ""
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+    
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+attrs = {
+    "index": '#',
+    "code": "Stock#",
+    "description": "Description",
+    "cost": "Cost",
+}
 
 # So here's how the bot is going to need to work
 # Step 1: Read the Excel sheet
 # Do this by opening every page in the spreadsheet using pandas
 # and then read row by row to assemble a list of entries
 
-entry_dict: Dict[int, Entry] = {}
+entries: List[Entry] = []
+dfs = pd.read_excel("cougarbot_data/stock.xls", sheet_name=None)
+for sheet_name, df in dfs.items():
+    df = df.astype(str)
+    titles = list(df.iloc[0])
+    indices = {
+        attr: titles.index(value) + 1 for attr, value in attrs.items()
+    }
+
+    indices["price"] = titles.index("Cost") + 3
+    qindex = titles.index("Abdn") + 1
+    for row in df.itertuples():
+        if row[indices["index"]] not in ["nan", '#']:
+            if row[qindex + 1] == "nan" or row[qindex] == 'X':
+                entry = Entry()
+                for attr, index in indices.items():
+                    entry[attr] = row[index]
+
+                q = row[qindex] if row[qindex].isnumeric() else '1'
+                entry["quantity"] = q
+                entry["location"] = "ABDN"
+                entries.append(entry)
+
+            if row[qindex + 1] != "nan":
+                entry = Entry()
+                for attr, index in indices.items():
+                    entry[attr] = row[index]
+
+                q = '1' if row[qindex + 1] == 'X' else row[qindex + 1]
+                entry["quantity"] = q
+                entry["location"] = "HBY"
+                entries.append(entry)
+
+print(entries)
 
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
@@ -36,6 +89,9 @@ entry_dict: Dict[int, Entry] = {}
 
 def locate_and_click(image: str, wait: int=1) -> None:
     icon = pyautogui.locateOnScreen(image)
+    if icon is None:
+        raise ValueError(f"Could not find {image}")
+
     pyautogui.moveTo(icon)
     time.sleep(0.3)
     pyautogui.click()
