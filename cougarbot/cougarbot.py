@@ -34,6 +34,8 @@ entry_dict: Dict[int, Entry] = {}
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
 
+network_icon = pyautogui.locate("cougarbot_data/network.png")
+
 # Step 3.5: Scan through the find menu to see if any of the codes
 # are already in the system. If so, prompt for a new code using tkinter.
 
