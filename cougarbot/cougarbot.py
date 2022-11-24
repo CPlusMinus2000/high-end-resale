@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import pyautogui
 import textract
-import tkinter as tk
+from pywinauto.keyboard import send_keys
 
 Entry = namedtuple(
     "Entry",
@@ -34,7 +34,33 @@ entry_dict: Dict[int, Entry] = {}
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
 
-network_icon = pyautogui.locate("cougarbot_data/network.png")
+def locate_and_click(image: str, wait: int=1) -> None:
+    icon = pyautogui.locateOnScreen(image)
+    pyautogui.moveTo(icon)
+    time.sleep(0.3)
+    pyautogui.click()
+    time.sleep(wait)
+
+def enter_maintenance():
+    steps = [
+        "cougarbot_data/" + i for i in [
+            "network.png",
+            "stock.png",
+            "stock_maintenance.png"
+        ]
+    ]
+
+    for step in steps:
+        locate_and_click(step, 1)
+
+locate_and_click("cougarbot_data/network.png")
+list_box = pyautogui.locateOnScreen("cougarbot_data/number.png")
+print(list_box)
+pyautogui.click(list_box)
+time.sleep(0.5)
+send_keys("123")
+
+
 
 # Step 3.5: Scan through the find menu to see if any of the codes
 # are already in the system. If so, prompt for a new code using tkinter.
