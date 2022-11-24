@@ -75,8 +75,6 @@ for sheet_name, df in dfs.items():
                 entry["location"] = "HBY"
                 entries.append(entry)
 
-print(entries)
-
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
 # using textract, then read the notes by splitting on double newlines
@@ -86,6 +84,9 @@ print(entries)
 # Step 3: Open Cougar Mountain through Remote Desktop and (optionally)
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
+
+def c(f: str) -> str:
+    return f"cougarbot_data/{f}"
 
 def locate_and_click(image: str, wait: int=1) -> None:
     icon = pyautogui.locateOnScreen(image)
@@ -97,7 +98,7 @@ def locate_and_click(image: str, wait: int=1) -> None:
     pyautogui.click()
     time.sleep(wait)
 
-def enter_maintenance():
+def enter_maintenance() -> None:
     steps = [
         "cougarbot_data/" + i for i in [
             "network.png",
@@ -109,14 +110,44 @@ def enter_maintenance():
     for step in steps:
         locate_and_click(step, 1)
 
-locate_and_click("cougarbot_data/network.png")
-list_box = pyautogui.locateOnScreen("cougarbot_data/number.png")
-print(list_box)
-pyautogui.click(list_box)
-time.sleep(0.5)
-send_keys("123")
+def enter_stock(entry: Entry) -> None:
+    """
+    Enter the data from an entry into the Cougar Mountain system.
+    """
 
+    # Enter the stock number
+    locate_and_click(c("stock_number.png"))
+    send_keys(entry.code + "{TAB}")
 
+    # If the stock number is already in the system, then looking for
+    # location.png should fail. If this happens, then alert the user
+    # (or in this case just print a failure message and exit)
+    try:
+        locate_and_click(c("location.png"))
+    except ValueError:
+        print(f"Stock number {entry.code} already in system")
+        raise
+
+    # Enter the location and description
+    send_keys(entry.location + "{TAB}")
+    send_keys(entry.description + "{TAB}")
+
+    bl = pyautogui.locateOnScreen(c("breaklist.png"))
+    if bl is None:
+        raise ValueError("Could not find breaklist")
+
+    pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)
+    time.sleep(0.3)
+    send_keys(entry.price + "{TAB}")
+
+# locate_and_click("cougarbot_data/network.png")
+# list_box = pyautogui.locateOnScreen("cougarbot_data/number.png")
+# print(list_box)
+# pyautogui.click(list_box)
+# time.sleep(0.5)
+# send_keys("123")
+
+enter_stock(entries[0])
 
 # Step 3.5: Scan through the find menu to see if any of the codes
 # are already in the system. If so, prompt for a new code using tkinter.
