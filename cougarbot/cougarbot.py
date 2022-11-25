@@ -143,6 +143,10 @@ def enter_maintenance() -> None:
         ]
     ]
 
+    if pyautogui.locateOnScreen("stock.png") is not None:
+        # Already in the Stock menu
+        steps = steps[2:]
+
     for step in steps:
         locate_and_click(step)
 
