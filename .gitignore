@@ -132,3 +132,4 @@ dmypy.json
 cougar_data/
 cougarbot/cougarbot_data/*.xls
 cougarbot/cougarbot_data/*.xlsx
+cougarbot/cougarbot_data/*.txt
