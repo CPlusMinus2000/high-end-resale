@@ -215,9 +215,11 @@ def enter_maintenance() -> None:
 # either by looking for greyed out text or checking the find menu
 
 
-def enter_stock(entry: Entry, first=False) -> None:
+def enter_stock(entry: Entry, first=False) -> bool:
     """
     Enter the data from an entry into the Cougar Mountain system.
+
+    Returns True if the entry was successfully entered, False otherwise.
     """
 
     # Enter the stock number
@@ -238,7 +240,10 @@ def enter_stock(entry: Entry, first=False) -> None:
     if lc is None:
         # Duplicate detected.
         # TODO: Set the bot to exit and re-enter maintenance, and continue
-        raise ValueError("Already in system")
+        # raise ValueError("Already in system")
+        locate_and_click(c("cancel.png"))
+        enter_maintenance()
+        return False
 
     send_keys(entry.description + "{TAB}")
 
@@ -264,6 +269,8 @@ def enter_stock(entry: Entry, first=False) -> None:
     with open(c("finished.txt"), "a") as f:
         f.write(entry.code + "\n")
 
+    return True
+
 
 if not os.path.exists(c("finished.txt")):
     with open(c("finished.txt"), "w") as f:
@@ -275,10 +282,13 @@ with open(c("finished.txt"), "r") as f:
     finished = f.readlines()
 
 print(finished)
+already_entered = []
 for i, entry in enumerate(entries):
     if entry.code not in finished:
-        enter_stock(entry, first=i == 0)
+        if not enter_stock(entry, first=i == 0):
+            already_entered.append(entry)
 
+print(*[e.code for e in already_entered], sep='\n')
 
 # Step 5: Send a Telegram message to Mom when the program is done
 # telegram_send.send(messages=["CougarBot is done!"])
