@@ -1,5 +1,6 @@
 
 import time
+import os
 from typing import List
 
 import pandas as pd
@@ -84,6 +85,11 @@ print(entries[1])
 # and add each note to the entry with the corresponding index number
 # Also, check that the prices match up
 
+def locate_price(sentence: str) -> str:
+    for word in sentence.split():
+        if '$' in word:
+            return word[word.index('$')+1:]
+
 with open("cougarbot_data/signs.txt", 'r') as f:
     signs = f.read().split("\n\n")
 
@@ -98,7 +104,7 @@ for entry in entries:
         # Check that the price is contained in the text
         if entry.price not in signs_map[entry.index]:
             print(f"Price mismatch for {entry.index}")
-            continue
+            entry.price = locate_price(signs_map[entry.index])
 
         entry.notes = signs_map[entry.index]
         for c in CONVERT:
@@ -123,7 +129,7 @@ def locate_and_click(image: str, wait: float=0.5) -> None:
         raise ValueError(f"Could not find {image}")
 
     pyautogui.moveTo(icon)
-    time.sleep(0.3)
+    time.sleep(0.2)
     pyautogui.click()
     time.sleep(wait)
 
@@ -138,7 +144,7 @@ def enter_maintenance() -> None:
     ]
 
     for step in steps:
-        locate_and_click(step, 1)
+        locate_and_click(step)
 
 # Step 4: Loop through the entries and insert the data into the system,
 # checking during insertion that the index number does not already exist
@@ -163,13 +169,14 @@ def enter_stock(entry: Entry, first=False) -> None:
 
     # Now try to find the last cost box. If it is not on screen,
     # then there must be a duplicate
-    bl = pyautogui.locateOnScreen(c("last_cost.png"))
-    if bl is None:
+    lc = pyautogui.locateOnScreen(c("last_cost.png"))
+    if lc is None:
         # Duplicate detected
         raise ValueError("Already in system")
 
     send_keys(entry.description + "{TAB}")
 
+    bl = pyautogui.locateOnScreen(c("breaklist.png"))
     pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)
     time.sleep(0.3)
     send_keys(entry.price + "{TAB}")
@@ -178,22 +185,32 @@ def enter_stock(entry: Entry, first=False) -> None:
     send_keys(entry.cost + "{TAB}")
 
     locate_and_click(c("sales.png"))
-    locate_and_click(c("storing.png"))
+    stor = pyautogui.locateOnScreen(c("storing.png"))
+    pyautogui.click(stor.left + stor.width + 2, stor.top + 0.5 * stor.height)
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(c("notes.png"))
     send_keys(entry.notes, with_spaces=True)
 
     locate_and_click(c("save.png"))
-    time.sleep(0.5)
+    time.sleep(2)
+
+    with open(c("finished.txt"), 'a') as f:
+        f.write(entry.code + '\n')
+
+if not os.path.exists(c("finished.txt")):
+    with open(c("finished.txt"), 'w') as f:
+        f.write('')
 
 locate_and_click(c("network.png"))
 enter_maintenance()
-for i, entry in enumerate(entries):
-    if i > 3:
-        break
+with open(c("finished.txt"), 'r') as f:
+    finished = f.readlines()
 
-    enter_stock(entry, first=i == 0)
+print(finished)
+for i, entry in enumerate(entries):
+    if entry.code not in finished:
+        enter_stock(entry, first=i == 0)
 
 # Step 5: Send a Telegram message to Mom when the program is done
 
