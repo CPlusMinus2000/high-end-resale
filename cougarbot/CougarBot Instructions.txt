@@ -4,7 +4,9 @@ which adds inventory items to Cougar Mountain automatically.
 
 Steps:
  1. Open Cougar Mountain in the Network desktop app and log into the HER server.
-    Make sure the window is not full screen.
+    Make sure the window is not full screen, but that it is big enough
+    for all of the stock maintenance information to be visible.
+    Also make sure that the network icon on the bottom of the screen is on the very left.
  2. Move the Excel file into the folder "cougarbot_data". The file should have one item per row,
     with the box # of each row matching a sign number.
  3. Change the Excel file name to "stock.xls".
