@@ -11,3 +11,4 @@ python-dotenv
 flake8
 black
 telegram-send
+pyperclip

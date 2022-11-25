@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import pyautogui
 import telegram_send
+import pyperclip
 
 from typing import List
 from dataclasses import dataclass
@@ -261,7 +262,9 @@ def enter_stock(entry: Entry, first=False) -> bool:
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(c("notes.png"))
-    send_keys(entry.notes, with_spaces=True)
+    # send_keys(entry.notes, with_spaces=True)
+    pyperclip.copy(entry.notes)
+    send_keys("^v")
 
     locate_and_click(c("save.png"))
     time.sleep(2)
