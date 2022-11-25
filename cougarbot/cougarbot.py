@@ -1,12 +1,11 @@
 
 import time
 import os
-from typing import List
-
 import pandas as pd
-from dataclasses import dataclass
-
 import pyautogui
+
+from typing import List
+from dataclasses import dataclass
 from platform import platform
 
 if "Windows" in platform():
@@ -89,6 +88,8 @@ def locate_price(sentence: str) -> str:
     for word in sentence.split():
         if '$' in word:
             return word[word.index('$')+1:]
+    
+    return ""
 
 with open("cougarbot_data/signs.txt", 'r') as f:
     signs = f.read().split("\n\n")
@@ -104,7 +105,39 @@ for entry in entries:
         # Check that the price is contained in the text
         if entry.price not in signs_map[entry.index]:
             print(f"Price mismatch for {entry.index}")
-            entry.price = locate_price(signs_map[entry.index])
+            guess = locate_price(signs_map[entry.index])
+            if guess != "":
+                res = pyautogui.confirm(
+                    f"Price mismatch for {entry.index} with "
+                    f"sign text \"{signs_map[entry.index]}\". "
+                    f"Is the price {guess}? "
+                     "Click OK to accept, "
+                     "or Cancel to keep the existing price. "
+                     "If you would like to enter in a new price, "
+                     "click \"New Price\".",
+                    buttons=["OK", "Cancel", "New Price"]
+                )
+
+                if res == "New Price":
+                    new_price = pyautogui.prompt("Please enter the new price:")
+                    if new_price is None:
+                        pass
+
+                    entry.price = new_price
+
+                elif res == "OK":
+                    entry.price = guess
+
+            else:
+                # This probably shouldn't be happening, but we can check it
+                res = pyautogui.confirm(
+                    f"The sign for {entry.index} does not contain a price. "
+                    "Please check the sign and enter in the price manually."
+                    "Click OK to continue, or Cancel to stop the program.",
+                )
+
+                if res == "Cancel":
+                    exit()
 
         entry.notes = signs_map[entry.index]
         for c in CONVERT:
@@ -112,6 +145,14 @@ for entry in entries:
 
     else:
         print(f"No sign data for {entry.index}")
+        res = pyautogui.confirm(
+            text=f"No sign data for {entry.index}. Continue?",
+            title="CougarBot"
+        )
+
+        if res == "Cancel":
+            exit()
+
         continue
 
 print(entries[0])
