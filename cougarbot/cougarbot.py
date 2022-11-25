@@ -74,6 +74,8 @@ for sheet_name, df in dfs.items():
                 entry["location"] = "HBY"
                 entries.append(entry)
 
+print(entries[0])
+
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
 # using textract, then read the notes by splitting on double newlines
@@ -87,7 +89,7 @@ for sheet_name, df in dfs.items():
 def c(f: str) -> str:
     return f"cougarbot_data/{f}"
 
-def locate_and_click(image: str, wait: int=1) -> None:
+def locate_and_click(image: str, wait: float=0.5) -> None:
     icon = pyautogui.locateOnScreen(image)
     if icon is None:
         raise ValueError(f"Could not find {image}")
@@ -115,7 +117,7 @@ def enter_stock(entry: Entry) -> None:
     """
 
     # Enter the stock number
-    locate_and_click(c("stock_number.png"))
+    locate_and_click(c("number.png"))
     send_keys(entry.code + "{TAB}")
 
     # If the stock number is already in the system, then looking for
@@ -128,7 +130,7 @@ def enter_stock(entry: Entry) -> None:
         raise
 
     # Enter the location and description
-    send_keys(entry.location + "{TAB}")
+    send_keys(entry.location + "{TAB 2}I1{TAB 3}")
     send_keys(entry.description + "{TAB}")
 
     bl = pyautogui.locateOnScreen(c("breaklist.png"))
@@ -139,6 +141,15 @@ def enter_stock(entry: Entry) -> None:
     time.sleep(0.3)
     send_keys(entry.price + "{TAB}")
 
+    locate_and_click(c("last_cost.png"))
+    send_keys(entry.cost + "{TAB}")
+
+    locate_and_click(c("sales.png"))
+    locate_and_click(c("storing.png"))
+    send_keys(entry.price + "{TAB}")
+
+    locate_and_click(c("notes.png"))
+
 # locate_and_click("cougarbot_data/network.png")
 # list_box = pyautogui.locateOnScreen("cougarbot_data/number.png")
 # print(list_box)
@@ -146,6 +157,7 @@ def enter_stock(entry: Entry) -> None:
 # time.sleep(0.5)
 # send_keys("123")
 
+locate_and_click(c("network.png"))
 enter_stock(entries[0])
 
 # Step 3.5: Scan through the find menu to see if any of the codes
