@@ -6,3 +6,8 @@ pytesseract
 pyautogui
 pyperclip
 pywinauto
+requests
+python-dotenv
+flake8
+black
+telegram-send

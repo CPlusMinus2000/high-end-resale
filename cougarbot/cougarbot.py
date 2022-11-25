@@ -1,18 +1,22 @@
-
 import time
 import os
 import pandas as pd
 import pyautogui
+import telegram_send
 
 from typing import List
 from dataclasses import dataclass
 from platform import platform
+from dotenv import load_dotenv
+
+load_dotenv()
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
 
 
-CONVERT = ('+', '^', '%', '(', ')')
+CONVERT = ("+", "^", "%", "(", ")")
+
 
 @dataclass
 class Entry:
@@ -27,12 +31,13 @@ class Entry:
 
     def __getitem__(self, key):
         return getattr(self, key)
-    
+
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+
 attrs = {
-    "index": '#',
+    "index": "#",
     "code": "Stock#",
     "description": "Description",
     "cost": "Cost",
@@ -48,20 +53,18 @@ dfs = pd.read_excel("cougarbot_data/stock.xls", sheet_name=None)
 for sheet_name, df in dfs.items():
     df = df.astype(str)
     titles = list(df.iloc[0])
-    indices = {
-        attr: titles.index(value) + 1 for attr, value in attrs.items()
-    }
+    indices = {attr: titles.index(value) + 1 for attr, value in attrs.items()}
 
     indices["price"] = titles.index("Cost") + 3
     qindex = titles.index("Abdn") + 1
     for row in df.itertuples():
-        if row[indices["index"]] not in ["nan", '#']:
-            if row[qindex + 1] == "nan" or row[qindex] == 'X':
+        if row[indices["index"]] not in ["nan", "#"]:
+            if row[qindex + 1] == "nan" or row[qindex] == "X":
                 entry = Entry()
                 for attr, index in indices.items():
                     entry[attr] = row[index]
 
-                q = row[qindex] if row[qindex].isnumeric() else '1'
+                q = row[qindex] if row[qindex].isnumeric() else "1"
                 entry["quantity"] = q
                 entry["location"] = "ABDN"
                 entries.append(entry)
@@ -71,7 +74,7 @@ for sheet_name, df in dfs.items():
                 for attr, index in indices.items():
                     entry[attr] = row[index]
 
-                q = '1' if row[qindex + 1] == 'X' else row[qindex + 1]
+                q = "1" if row[qindex + 1] == "X" else row[qindex + 1]
                 entry["quantity"] = q
                 entry["location"] = "HBY"
                 entries.append(entry)
@@ -84,21 +87,23 @@ print(entries[1])
 # and add each note to the entry with the corresponding index number
 # Also, check that the prices match up
 
+
 def locate_price(sentence: str) -> str:
     for word in sentence.split():
-        if '$' in word:
-            return word[word.index('$')+1:]
-    
+        if "$" in word:
+            return word[word.index("$") + 1:]
+
     return ""
 
-with open("cougarbot_data/signs.txt", 'r') as f:
+
+with open("cougarbot_data/signs.txt", "r") as f:
     signs = f.read().split("\n\n")
 
 signs_map = {}
 for s in signs:
     i, t = s.splitlines()
     for part in i.split(" & "):
-        signs_map[part.strip('.')] = t.split("   ")[0].strip()
+        signs_map[part.strip(".")] = t.split("   ")[0].strip()
 
 for entry in entries:
     if entry.index in signs_map:
@@ -109,13 +114,13 @@ for entry in entries:
             if guess != "":
                 res = pyautogui.confirm(
                     f"Price mismatch for {entry.index} with "
-                    f"sign text \"{signs_map[entry.index]}\". "
+                    f'sign text "{signs_map[entry.index]}". '
                     f"Is the price {guess}? "
-                     "Click OK to accept, "
-                     "or Cancel to keep the existing price. "
-                     "If you would like to enter in a new price, "
-                     "click \"New Price\".",
-                    buttons=["OK", "Cancel", "New Price"]
+                    "Click OK to accept, "
+                    "or Cancel to keep the existing price. "
+                    "If you would like to enter in a new price, "
+                    'click "New Price".',
+                    buttons=["OK", "Cancel", "New Price"],
                 )
 
                 if res == "New Price":
@@ -141,7 +146,7 @@ for entry in entries:
 
         entry.notes = signs_map[entry.index]
         for c in CONVERT:
-            entry.notes = entry.notes.replace(c, '{' + c + '}')
+            entry.notes = entry.notes.replace(c, "{" + c + "}")
 
     else:
         print(f"No sign data for {entry.index}")
@@ -161,10 +166,20 @@ print(entries[0])
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
 
+
 def c(f: str) -> str:
+    """
+    Short utility function for formatting file paths
+    """
+
     return f"cougarbot_data/{f}"
 
-def locate_and_click(image: str, wait: float=0.5) -> None:
+
+def locate_and_click(image: str, wait: float = 0.5) -> None:
+    """
+    Locate the image on the screen and click it
+    """
+
     icon = pyautogui.locateOnScreen(image)
     if icon is None:
         raise ValueError(f"Could not find {image}")
@@ -174,13 +189,16 @@ def locate_and_click(image: str, wait: float=0.5) -> None:
     pyautogui.click()
     time.sleep(wait)
 
+
 def enter_maintenance() -> None:
+    """
+    Use locate_and_click to enter the stock maintenance screen.
+    """
+
     steps = [
         c(i) for i in [
-            "file.png",
-            "inventory.png",
-            "stock.png",
-            "stock_maintenance.png"
+            "file.png", "inventory.png",
+            "stock.png", "stock_maintenance.png"
         ]
     ]
 
@@ -191,9 +209,11 @@ def enter_maintenance() -> None:
     for step in steps:
         locate_and_click(step)
 
+
 # Step 4: Loop through the entries and insert the data into the system,
 # checking during insertion that the index number does not already exist
 # either by looking for greyed out text or checking the find menu
+
 
 def enter_stock(entry: Entry, first=False) -> None:
     """
@@ -216,7 +236,8 @@ def enter_stock(entry: Entry, first=False) -> None:
     # then there must be a duplicate
     lc = pyautogui.locateOnScreen(c("last_cost.png"))
     if lc is None:
-        # Duplicate detected
+        # Duplicate detected.
+        # TODO: Set the bot to exit and re-enter maintenance, and continue
         raise ValueError("Already in system")
 
     send_keys(entry.description + "{TAB}")
@@ -240,16 +261,17 @@ def enter_stock(entry: Entry, first=False) -> None:
     locate_and_click(c("save.png"))
     time.sleep(2)
 
-    with open(c("finished.txt"), 'a') as f:
-        f.write(entry.code + '\n')
+    with open(c("finished.txt"), "a") as f:
+        f.write(entry.code + "\n")
+
 
 if not os.path.exists(c("finished.txt")):
-    with open(c("finished.txt"), 'w') as f:
-        f.write('')
+    with open(c("finished.txt"), "w") as f:
+        f.write("")
 
 locate_and_click(c("network.png"))
 enter_maintenance()
-with open(c("finished.txt"), 'r') as f:
+with open(c("finished.txt"), "r") as f:
     finished = f.readlines()
 
 print(finished)
@@ -257,6 +279,8 @@ for i, entry in enumerate(entries):
     if entry.code not in finished:
         enter_stock(entry, first=i == 0)
 
+
 # Step 5: Send a Telegram message to Mom when the program is done
+# telegram_send.send(messages=["CougarBot is done!"])
 
 # Step 6: Profit
