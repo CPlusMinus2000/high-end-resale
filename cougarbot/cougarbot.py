@@ -111,6 +111,10 @@ def enter_maintenance() -> None:
     for step in steps:
         locate_and_click(step, 1)
 
+# Step 4: Loop through the entries and insert the data into the system,
+# checking during insertion that the index number does not already exist
+# either by looking for greyed out text or checking the find menu
+
 def enter_stock(entry: Entry) -> None:
     """
     Enter the data from an entry into the Cougar Mountain system.
@@ -150,22 +154,8 @@ def enter_stock(entry: Entry) -> None:
 
     locate_and_click(c("notes.png"))
 
-# locate_and_click("cougarbot_data/network.png")
-# list_box = pyautogui.locateOnScreen("cougarbot_data/number.png")
-# print(list_box)
-# pyautogui.click(list_box)
-# time.sleep(0.5)
-# send_keys("123")
-
 locate_and_click(c("network.png"))
 enter_stock(entries[0])
-
-# Step 3.5: Scan through the find menu to see if any of the codes
-# are already in the system. If so, prompt for a new code using tkinter.
-
-# Step 4: Loop through the entries and insert the data into the system,
-# checking during insertion that the index number does not already exist
-# either by looking for greyed out text or checking the find menu
 
 # Step 5: Send a Telegram message to Mom when the program is done
 
