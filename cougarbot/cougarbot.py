@@ -206,7 +206,8 @@ def enter_maintenance() -> None:
     if pyautogui.locateOnScreen(c("stock.png")) is not None:
         # Already in the Stock menu
         steps = steps[2:]
-    elif pyautogui.locateOnScreen(c("number.png")) is None:
+    elif pyautogui.locateOnScreen(c("in_stock.png")) is not None and \
+            pyautogui.locateOnScreen(c("number.png")) is None:
         # Already have an item entered
         locate_and_click(c("file.png"))
         locate_and_click(c("exit.png"))
