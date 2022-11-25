@@ -82,6 +82,30 @@ print(entries[0])
 # and add each note to the entry with the corresponding index number
 # Also, check that the prices match up
 
+with open("cougarbot_data/signs.txt", 'r') as f:
+    signs = f.read().split("\n\n")
+
+signs_map = {}
+for s in signs:
+    i, t = s.splitlines()
+    for part in i.split(" & "):
+        signs_map[part.strip('.')] = t.split("   ")[0].strip()
+
+for entry in entries:
+    if entry.index in signs_map:
+        # Check that the price is contained in the text
+        if entry.price not in signs_map[entry.index]:
+            print(f"Price mismatch for {entry.index}")
+            continue
+
+        entry.notes = signs_map[entry.index]
+
+    else:
+        print(f"No sign data for {entry.index}")
+        continue
+
+print(entries[0])
+
 # Step 3: Open Cougar Mountain through Remote Desktop and (optionally)
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
