@@ -125,8 +125,9 @@ def locate_and_click(image: str, wait: float=0.5) -> None:
 
 def enter_maintenance() -> None:
     steps = [
-        "cougarbot_data/" + i for i in [
-            "network.png",
+        c(i) for i in [
+            "file.png",
+            "inventory.png",
             "stock.png",
             "stock_maintenance.png"
         ]
@@ -139,31 +140,31 @@ def enter_maintenance() -> None:
 # checking during insertion that the index number does not already exist
 # either by looking for greyed out text or checking the find menu
 
-def enter_stock(entry: Entry) -> None:
+def enter_stock(entry: Entry, first=False) -> None:
     """
     Enter the data from an entry into the Cougar Mountain system.
     """
 
     # Enter the stock number
-    locate_and_click(c("number.png"))
+    if first:
+        locate_and_click(c("number.png"))
+
     send_keys(entry.code + "{TAB}")
 
-    # If the stock number is already in the system, then looking for
-    # location.png should fail. If this happens, then alert the user
-    # (or in this case just print a failure message and exit)
-    try:
-        locate_and_click(c("location.png"))
-    except ValueError:
-        print(f"Stock number {entry.code} already in system")
-        raise
-
     # Enter the location and description
-    send_keys(entry.location + "{TAB 2}I1{TAB 3}")
-    send_keys(entry.description + "{TAB}")
+    if first:
+        send_keys(entry.location + "{TAB 2}I1{TAB 3}")
+    else:
+        send_keys(entry.location + "{TAB 5}")
 
-    bl = pyautogui.locateOnScreen(c("breaklist.png"))
+    # Now try to find the last cost box. If it is not on screen,
+    # then there must be a duplicate
+    bl = pyautogui.locateOnScreen(c("last_cost.png"))
     if bl is None:
-        raise ValueError("Could not find breaklist")
+        # Duplicate detected
+        raise ValueError("Already in system")
+
+    send_keys(entry.description + "{TAB}")
 
     pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)
     time.sleep(0.3)
@@ -177,9 +178,15 @@ def enter_stock(entry: Entry) -> None:
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(c("notes.png"))
+    send_keys(entry.notes, with_spaces=True)
+
+    locate_and_click(c("save.png"))
 
 locate_and_click(c("network.png"))
-enter_stock(entries[0])
+enter_maintenance()
+enter_stock(entries[0], first=True)
+time.sleep(1)
+enter_stock(entries[1])
 
 # Step 5: Send a Telegram message to Mom when the program is done
 
