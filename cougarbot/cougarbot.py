@@ -12,6 +12,8 @@ if "Windows" in platform():
     from pywinauto.keyboard import send_keys
 
 
+CONVERT = ('+', '^', '%', '(', ')')
+
 @dataclass
 class Entry:
     index: str = ""
@@ -74,7 +76,7 @@ for sheet_name, df in dfs.items():
                 entry["location"] = "HBY"
                 entries.append(entry)
 
-print(entries[0])
+print(entries[1])
 
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
@@ -99,6 +101,8 @@ for entry in entries:
             continue
 
         entry.notes = signs_map[entry.index]
+        for c in CONVERT:
+            entry.notes = entry.notes.replace(c, '{' + c + '}')
 
     else:
         print(f"No sign data for {entry.index}")
@@ -181,12 +185,15 @@ def enter_stock(entry: Entry, first=False) -> None:
     send_keys(entry.notes, with_spaces=True)
 
     locate_and_click(c("save.png"))
+    time.sleep(0.5)
 
 locate_and_click(c("network.png"))
 enter_maintenance()
-enter_stock(entries[0], first=True)
-time.sleep(1)
-enter_stock(entries[1])
+for i, entry in enumerate(entries):
+    if i > 3:
+        break
+
+    enter_stock(entry, first=i == 0)
 
 # Step 5: Send a Telegram message to Mom when the program is done
 
