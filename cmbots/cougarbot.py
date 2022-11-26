@@ -18,15 +18,15 @@ if "Windows" in platform():
 # Do this by opening every page in the spreadsheet using pandas
 # and then read row by row to assemble a list of entries
 
-if not os.path.exists("cougarbot_data/stock.xls"):
+if not os.path.exists(c("stock.xls")):
     pyautogui.alert(
-        "Please save the stock spreadsheet in the folder cougarbot_data "
+        "Please save the stock spreadsheet in the folder bot_data "
         "with the name stock.xls."
     )
     exit()
 
 entries: List[Entry] = []
-dfs = pd.read_excel("cougarbot_data/stock.xls", sheet_name=None)
+dfs = pd.read_excel(c("stock.xls"), sheet_name=None)
 for sheet_name, df in dfs.items():
     df = df.astype(str)
     titles = list(df.iloc[0])
@@ -72,14 +72,14 @@ def locate_price(sentence: str) -> str:
 
     return ""
 
-if not os.path.exists("cougarbot_data/signs.txt"):
+if not os.path.exists(c("signs.txt")):
     pyautogui.alert(
         "Please open the signs document "
-        "and save it in the folder cougarbot_data/ as signs.txt."
+        "and save it in the folder bot_data/ as signs.txt."
     )
     exit()
 
-with open("cougarbot_data/signs.txt", "r") as f:
+with open(c("signs.txt"), "r") as f:
     signs = f.read().split("\n\n")
 
 signs_map = {}

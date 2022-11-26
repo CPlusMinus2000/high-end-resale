@@ -7,7 +7,7 @@ Steps:
     Make sure the window is not full screen, but that it is big enough
     for all of the stock maintenance information to be visible.
     Also make sure that the network icon on the bottom of the screen is on the very left.
- 2. Move the Excel file into the folder "cougarbot_data". The file should have one item per row,
+ 2. Move the Excel file into the folder "bot_data". The file should have one item per row,
     with the box # of each row matching a sign number.
  3. Change the Excel file name to "stock.xls".
  4. Copy the signs text data into a text file called "signs.txt".
@@ -19,7 +19,7 @@ Steps:
     35
     Biomorphic green glass vase, ONLY $9999.99. (In other countries this would be $99999.99!)
 
- 5. Move the signs.txt file into the folder "cougarbot_data".
+ 5. Move the signs.txt file into the folder "bot_data".
  6. If there is a file named "finished.txt" in the folder, delete it.
  7. Double-click on the file "cougarbot.py" and wait for a Telegram message.
   a. If the message says "error: item already in system", ...

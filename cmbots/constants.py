@@ -39,7 +39,7 @@ def c(f: str) -> str:
     Short utility function for formatting file paths
     """
 
-    return f"cougarbot_data/{f}"
+    return f"bot_data/{f}"
 
 
 def open_network() -> None:
