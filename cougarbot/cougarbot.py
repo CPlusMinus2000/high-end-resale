@@ -6,9 +6,9 @@ import telegram_send
 import pyperclip
 
 from typing import List
-from dataclasses import dataclass
 from platform import platform
 from dotenv import load_dotenv
+from constants import *
 
 load_dotenv()
 
@@ -16,46 +16,24 @@ if "Windows" in platform():
     from pywinauto.keyboard import send_keys
 
 
-CONVERT = ("+", "^", "%", "(", ")")
-NETWORKS = ["networks/" + f for f in os.listdir("cougarbot_data/networks")]
-
-
-@dataclass
-class Entry:
-    index: str = ""
-    code: str = ""
-    description: str = ""
-    location: str = ""
-    quantity: str = ""
-    cost: str = ""
-    price: str = ""
-    notes: str = ""
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
-
-attrs = {
-    "index": "#",
-    "code": "Stock#",
-    "description": "Description",
-    "cost": "Cost",
-}
-
 # So here's how the bot is going to need to work
 # Step 1: Read the Excel sheet
 # Do this by opening every page in the spreadsheet using pandas
 # and then read row by row to assemble a list of entries
+
+if not os.path.exists("cougarbot_data/stock.xls"):
+    pyautogui.alert(
+        "Please save the stock spreadsheet in the folder cougarbot_data "
+        "with the name stock.xls."
+    )
+    exit()
 
 entries: List[Entry] = []
 dfs = pd.read_excel("cougarbot_data/stock.xls", sheet_name=None)
 for sheet_name, df in dfs.items():
     df = df.astype(str)
     titles = list(df.iloc[0])
-    indices = {attr: titles.index(value) + 1 for attr, value in attrs.items()}
+    indices = {attr: titles.index(value) + 1 for attr, value in ATTRS.items()}
 
     indices["price"] = titles.index("Cost") + 3
     qindex = titles.index("Abdn") + 1
@@ -97,6 +75,12 @@ def locate_price(sentence: str) -> str:
 
     return ""
 
+if not os.path.exists("cougarbot_data/signs.txt"):
+    pyautogui.alert(
+        "Please open the signs document "
+        "and save it in the folder cougarbot_data/ as signs.txt."
+    )
+    exit()
 
 with open("cougarbot_data/signs.txt", "r") as f:
     signs = f.read().split("\n\n")
@@ -147,8 +131,9 @@ for entry in entries:
                     exit()
 
         entry.notes = signs_map[entry.index]
-        for c in CONVERT:
-            entry.notes = entry.notes.replace(c, "{" + c + "}")
+        if TYPE_NOTES:
+            for c in CONVERT:
+                entry.notes = entry.notes.replace(c, "{" + c + "}")
 
     else:
         print(f"No sign data for {entry.index}")
@@ -268,8 +253,6 @@ def enter_stock(entry: Entry, first=False) -> bool:
     lc = pyautogui.locateOnScreen(c("last_cost.png"))
     if lc is None:
         # Duplicate detected.
-        # TODO: Set the bot to exit and re-enter maintenance, and continue
-        # raise ValueError("Already in system")
         locate_and_click(c("cancel.png"))
         enter_maintenance()
         return False
@@ -290,9 +273,11 @@ def enter_stock(entry: Entry, first=False) -> bool:
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(c("notes.png"))
-    # send_keys(entry.notes, with_spaces=True)
-    pyperclip.copy(entry.notes)
-    send_keys("^v")
+    if TYPE_NOTES:
+        send_keys(entry.notes, with_spaces=True)
+    else:
+        pyperclip.copy(entry.notes)
+        send_keys("^v")
 
     locate_and_click(c("save.png"))
     time.sleep(2)
@@ -320,8 +305,15 @@ for i, entry in enumerate(entries):
             already_entered.append(entry)
 
 print(*[e.code for e in already_entered], sep='\n')
+with open("already_entered.txt", "w") as f:
+    f.write("\n".join([e.code for e in already_entered]))
 
 # Step 5: Send a Telegram message to Mom when the program is done
-# telegram_send.send(messages=["CougarBot is done!"])
+message = (
+    f"Finished entering {len(entries) - len(already_entered)} entries"
+    f" into Cougar Mountain. {len(already_entered)} duplicates found:"
+    f"\n{'\n'.join([e.code for e in already_entered])}"
+)
+telegram_send.send(messages=[message])
 
 # Step 6: Profit
