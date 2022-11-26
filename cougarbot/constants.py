@@ -1,5 +1,7 @@
 
 import os
+import pyautogui
+import time
 from dataclasses import dataclass
 
 TYPE_NOTES = False  # Do we type out notes or just copy and paste?
