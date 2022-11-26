@@ -220,6 +220,17 @@ def enter_stock(entry: Entry, first=False) -> bool:
         return False
 
     send_keys(entry.description + "{TAB}")
+    if entry.cnor != "nan":
+        send_keys(entry.cnor)
+        locate_and_click(c("serialized.png"))
+        con = pyautogui.locateOnScreen(c("consignment.png"))
+        if con is not None:
+            pyautogui.click(con.left, con.top + 0.5 * con.height)
+        else:
+            pyautogui.alert("Could not find consignment button!")
+            exit()
+        
+        send_keys("{TAB 2}" + entry.cost)
 
     bl = pyautogui.locateOnScreen(c("breaklist.png"))
     pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)

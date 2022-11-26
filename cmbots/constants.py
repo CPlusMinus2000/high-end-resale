@@ -14,6 +14,7 @@ class Entry:
     index: str = ""
     code: str = ""
     description: str = ""
+    cnor: str = ""
     location: str = ""
     quantity: str = ""
     cost: str = ""
@@ -32,6 +33,7 @@ ATTRS = {
     "code": "Stock#",
     "description": "Description",
     "cost": "Cost",
+    "cnor": "Cnor"
 }
 
 def c(f: str) -> str:
