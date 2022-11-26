@@ -130,8 +130,8 @@ dmypy.json
 
 # Data
 cougar_data/
-cmdata/bot_data/*.xls
-cmdata/bot_data/*.xlsx
-cmdata/bot_data/*.txt
-cmdata/finished.txt
-cmdata/already_entered.txt
+cmbots/bot_data/*.xls
+cmbots/bot_data/*.xlsx
+cmbots/bot_data/*.txt
+cmbots/finished.txt
+cmbots/already_entered.txt
