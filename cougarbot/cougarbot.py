@@ -17,6 +17,7 @@ if "Windows" in platform():
 
 
 CONVERT = ("+", "^", "%", "(", ")")
+NETWORKS = ["networks/" + f for f in os.listdir("cougarbot_data/networks")]
 
 
 @dataclass
@@ -176,6 +177,20 @@ def c(f: str) -> str:
     return f"cougarbot_data/{f}"
 
 
+def open_network() -> None:
+    """
+    Launch the remote desktop application by clicking on the icon.
+    The exact icon image is finicky, so try a few different ones.
+    """
+
+    for network in NETWORKS:
+        if pyautogui.locateOnScreen(c(network)) is not None:
+            pyautogui.click(c(network))
+            break
+    
+    raise Exception("Could not find network icon")
+
+
 def locate_and_click(image: str, wait: float = 0.5) -> None:
     """
     Locate the image on the screen and click it
@@ -203,14 +218,17 @@ def enter_maintenance() -> None:
         ]
     ]
 
-    if pyautogui.locateOnScreen(c("stock.png")) is not None and \
-       (pyautogui.locateOnScreen(c("in_stock.png")) is not None or \
-        pyautogui.locateOnScreen(c("number.png")) is None):
-        # Already in the Stock menu
+    if pyautogui.locateOnScreen(c("number.png")) is not None:
+        # Already ready to start entering
+        return
+    elif pyautogui.locateOnScreen(c("stock.png")) is None:
+        # Regular, no modifications
+        pass
+    elif pyautogui.locateOnScreen(c("in_stock.png")) is None:
+        # Menu is not visible. Enter maintenance mode
         steps = steps[2:]
-    elif pyautogui.locateOnScreen(c("in_stock.png")) is not None and \
-            pyautogui.locateOnScreen(c("number.png")) is None:
-        # Already have an item entered
+    else:
+        # Menu is visible, but can't enter numbers. Exit.
         locate_and_click(c("file.png"))
         locate_and_click(c("exit.png"))
         if pyautogui.locateOnScreen(c("information.png")) is not None:
@@ -289,7 +307,7 @@ if not os.path.exists(c("finished.txt")):
     with open(c("finished.txt"), "w") as f:
         f.write("")
 
-locate_and_click(c("network.png"))
+open_network()
 enter_maintenance()
 with open(c("finished.txt"), "r") as f:
     finished = f.readlines()
