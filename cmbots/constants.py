@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 TYPE_NOTES = False  # Do we type out notes or just copy and paste?
 CONVERT = ("+", "^", "%", "(", ")")
-NETWORKS = ["networks/" + f for f in os.listdir("cougarbot_data/networks")]
+NETWORKS = ["networks/" + f for f in os.listdir("bot_data/networks")]
 
 
 @dataclass
