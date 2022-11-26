@@ -203,7 +203,9 @@ def enter_maintenance() -> None:
         ]
     ]
 
-    if pyautogui.locateOnScreen(c("number.png")) is not None:
+    if pyautogui.locateOnScreen(c("information.png")) is not None:
+        locate_and_click(c("no.png"))
+    elif pyautogui.locateOnScreen(c("number.png")) is not None:
         # Already ready to start entering
         return
     elif pyautogui.locateOnScreen(c("stock.png")) is None:
@@ -250,8 +252,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     # Now try to find the last cost box. If it is not on screen,
     # then there must be a duplicate
-    lc = pyautogui.locateOnScreen(c("last_cost.png"))
-    if lc is None:
+    dup = pyautogui.locateOnScreen(c("notes.png"))
+    if dup is None:
         # Duplicate detected.
         locate_and_click(c("cancel.png"))
         enter_maintenance()
@@ -264,7 +266,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
     time.sleep(0.3)
     send_keys(entry.price + "{TAB}")
 
-    locate_and_click(c("last_cost.png"))
+    lc = pyautogui.locateOnScreen(c("last_cost.png"))
+    pyautogui.click(lc.left + lc.width + 2, lc.top + 0.5 * lc.height)
     send_keys(entry.cost + "{TAB}")
 
     locate_and_click(c("sales.png"))
