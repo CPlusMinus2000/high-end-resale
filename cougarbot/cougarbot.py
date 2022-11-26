@@ -304,6 +304,7 @@ for i, entry in enumerate(entries):
     if entry.code not in finished:
         if not enter_stock(entry, first=first):
             already_entered.append(entry)
+            first = True
         else:
             first = False
 
