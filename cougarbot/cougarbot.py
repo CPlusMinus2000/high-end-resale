@@ -282,27 +282,30 @@ def enter_stock(entry: Entry, first=False) -> bool:
     locate_and_click(c("save.png"))
     time.sleep(2)
 
-    with open(c("finished.txt"), "a") as f:
+    with open("finished.txt", "a") as f:
         f.write(entry.code + "\n")
 
     return True
 
 
-if not os.path.exists(c("finished.txt")):
-    with open(c("finished.txt"), "w") as f:
+if not os.path.exists("finished.txt"):
+    with open("finished.txt", "w") as f:
         f.write("")
 
 open_network()
 enter_maintenance()
-with open(c("finished.txt"), "r") as f:
+with open("finished.txt", "r") as f:
     finished = f.readlines()
 
 print(finished)
 already_entered = []
+first = True
 for i, entry in enumerate(entries):
     if entry.code not in finished:
-        if not enter_stock(entry, first=i == 0):
+        if not enter_stock(entry, first=first):
             already_entered.append(entry)
+        else:
+            first = False
 
 print(*[e.code for e in already_entered], sep='\n')
 with open("already_entered.txt", "w") as f:
