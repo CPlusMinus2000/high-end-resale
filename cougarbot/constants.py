@@ -31,3 +31,39 @@ ATTRS = {
     "description": "Description",
     "cost": "Cost",
 }
+
+def c(f: str) -> str:
+    """
+    Short utility function for formatting file paths
+    """
+
+    return f"cougarbot_data/{f}"
+
+
+def open_network() -> None:
+    """
+    Launch the remote desktop application by clicking on the icon.
+    The exact icon image is finicky, so try a few different ones.
+    """
+
+    for network in NETWORKS:
+        if pyautogui.locateOnScreen(c(network)) is not None:
+            pyautogui.click(c(network))
+            return
+    
+    raise Exception("Could not find network icon")
+
+
+def locate_and_click(image: str, wait: float = 0.5) -> None:
+    """
+    Locate the image on the screen and click it
+    """
+
+    icon = pyautogui.locateOnScreen(image)
+    if icon is None:
+        raise ValueError(f"Could not find {image}")
+
+    pyautogui.moveTo(icon)
+    time.sleep(0.2)
+    pyautogui.click()
+    time.sleep(wait)

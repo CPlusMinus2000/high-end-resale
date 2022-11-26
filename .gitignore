@@ -134,3 +134,4 @@ cougarbot/cougarbot_data/*.xls
 cougarbot/cougarbot_data/*.xlsx
 cougarbot/cougarbot_data/*.txt
 cougarbot/finished.txt
+cougarbot/already_entered.txt
