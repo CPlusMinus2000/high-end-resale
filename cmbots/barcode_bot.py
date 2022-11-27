@@ -1,16 +1,26 @@
 
 import pyautogui
 import time
+import os
 
 from platform import platform
-from constants import *
+from constants import c, locate_and_click, open_network
+from filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
 
 
 # Step 1: Read the Excel file
+if not os.path.exists(c("barcode.xlsx")):
+    pyautogui.alert(
+        "Please save the stock spreadsheet in the folder bot_data "
+        "with the name barcode.xlsx."
+    )
+    exit()
 
+entries = read_excel(c("barcode.xlsx"))
+print(entries)
 
 # Step 2: Open the RDP window and enter the barcode menu
 
@@ -38,10 +48,22 @@ def enter_stock_labels() -> None:
     for step in steps:
         locate_and_click(step)
 
+def setup() -> None:
+    """
+    Perform some setup tasks before entering the data.
+    """
+    
+    pic = pyautogui.locateOnScreen(c("process_in.png"))
+    if pic is not None:
+        pyautogui.click(pic.left + pic.width, pic.top + pic.height // 2)
+    
+    send_keys("{TAB}I1")
+    locate_and_click(c("barcode_on.png"))
+    locate_and_click(c("select.png"))
+
 
 open_network()
 enter_stock_labels()
+setup()
 
-
-# Just check to see if we can click on the bullet
-locate_and_click(c("select.png"))
+# Step 3: Enter the data into the system

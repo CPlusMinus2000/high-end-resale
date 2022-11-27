@@ -32,6 +32,7 @@ ATTRS = {
     "index": "#",
     "code": "Stock#",
     "description": "Description",
+    "quantity": "Qty.",
     "cost": "Cost",
     "cnor": "Cnor"
 }

@@ -1,5 +1,6 @@
 xlsxwriter
 xlrd
+openpyxl
 numpy
 pandas
 pytesseract
