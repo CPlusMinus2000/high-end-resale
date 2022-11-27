@@ -21,7 +21,7 @@ if not os.path.exists(c("barcode.xlsx")):
     exit()
 
 try:
-    entries = read_excel(c("barcode.xlsx"))
+    entries = read_excel(c("barcode.xlsx"), mode='b')
 except ValueError as e:
     pyautogui.alert(str(e))
     exit()

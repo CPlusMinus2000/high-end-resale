@@ -5,12 +5,18 @@ from constants import Entry, ATTRS
 import pandas as pd
 
 
-def read_excel(filename: str) -> List[Entry]:
+def read_excel(filename: str, mode: str='i') -> List[Entry]:
     """
     Reads an Excel document of a very specific format
     (must contain the column headers contained in ATTRS)
     and compiles it into a list of Entry objects, which are returned.
+
+    Mode represents the reading mode, which is important for small details.
+    'i': Inventory mode, could possibly have two locations per row
+    'b': Barcode mode, only one location per row
     """
+
+    assert mode in ['i', 'b']
 
     entries: List[Entry] = []
     dfs = pd.read_excel(filename, sheet_name=None)
@@ -33,7 +39,8 @@ def read_excel(filename: str) -> List[Entry]:
         for row in df.itertuples():
             if row[indices["index"]] not in ["nan", "#"]:
                 count = 0
-                if row[qindex + 1] == "nan" or row[qindex] in ['x', 'X']:
+                mode_check = row[qindex + 1] == "nan" if mode == 'b' else True
+                if mode_check or row[qindex] in ['x', 'X']:
                     entry = Entry()
                     for attr, index in indices.items():
                         entry[attr] = row[index]
@@ -44,7 +51,8 @@ def read_excel(filename: str) -> List[Entry]:
                     entries.append(entry)
                     count += 1
 
-                if row[qindex + 1] != "nan" and row[qindex] == "nan":
+                mode_check = row[qindex] == "nan" if mode == 'b' else True
+                if row[qindex + 1] != "nan" and mode_check:
                     entry = Entry()
                     for attr, index in indices.items():
                         entry[attr] = row[index]
