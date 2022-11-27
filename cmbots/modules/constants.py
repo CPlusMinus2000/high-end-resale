@@ -36,6 +36,7 @@ ATTRS = {
     "code": "Stock#",
     "description": "Description",
     "quantity": "Qty.",
+    "price": "Sell Price",
     "cost": "Cost",
     "cnor": "Cnor"
 }

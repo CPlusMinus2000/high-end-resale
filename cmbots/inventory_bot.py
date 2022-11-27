@@ -76,7 +76,7 @@ requested = set()
 for entry in entries:
     if entry.index in signs_map:
         # Check that the price is contained in the text
-        if entry.price not in signs_map[entry.index]:
+        if entry.price not in signs_map[entry.index].replace(',', ''):
             print(f"Price mismatch for {entry.index}")
             guess = locate_price(signs_map[entry.index])
             if guess != "":
@@ -100,6 +100,9 @@ for entry in entries:
 
                 elif res == "OK":
                     entry.price = guess.replace(',', '')
+
+                else:
+                    exit()
 
             else:
                 # This probably shouldn't be happening, but we can check it

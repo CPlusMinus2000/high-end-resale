@@ -41,7 +41,6 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
             for attr, value in ATTRS.items()
         }
 
-        indices["price"] = titles.index("Cost") + 3
         qindex = titles.index("Abdn") + 1
         for row in df.itertuples():
             if row[indices["index"]] not in ["nan", "#"]:
