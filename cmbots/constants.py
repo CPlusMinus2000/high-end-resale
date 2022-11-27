@@ -109,8 +109,9 @@ def locate_and_click(
         raise ImageNotFoundError(f"{image}")
     
     x, y = icon.left, icon.top
-    x, y += icon.width * POSITIONS[pos][0], icon.height * POSITIONS[pos][1]
-    x, y += POSITIONS[pos][2] * stretch, POSITIONS[pos][3] * stretch
+    w, h = icon.width, icon.height
+    x, y = x + w * POSITIONS[pos][0], y + h * POSITIONS[pos][1]
+    x, y = x + POSITIONS[pos][2] * stretch, y + POSITIONS[pos][3] * stretch
 
     pyautogui.moveTo(x, y)
     time.sleep(0.2)
