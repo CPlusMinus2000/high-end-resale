@@ -191,6 +191,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     # Now try to find the notes box. If it is not on screen,
     # then there must be a duplicate
+    time.sleep(1)
     dup = pyautogui.locateOnScreen(p("notes.png"))
     if dup is None:
         # Duplicate detected.
