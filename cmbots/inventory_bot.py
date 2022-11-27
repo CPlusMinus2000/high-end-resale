@@ -5,7 +5,8 @@ import telegram_send
 import pyperclip
 
 from platform import platform
-from constants import p, c, locate_and_click, Entry, open_network
+from constants import p, c, locate_and_click, Entry, open_network, \
+    ImageNotFoundError
 from filereader import read_excel
 
 if "Windows" in platform():
@@ -24,7 +25,12 @@ if not os.path.exists(c("stock.xls")):
     )
     exit()
 
-entries = read_excel(c("stock.xls"))
+try:
+    entries = read_excel(c("stock.xls"))
+except ValueError as e:
+    pyautogui.alert(str(e))
+    exit()
+
 print(entries[1])
 
 # Step 2: Read the Word document containing the sign data to extract notes.
@@ -191,27 +197,20 @@ def enter_stock(entry: Entry, first=False) -> bool:
     if entry.cnor != "nan":
         send_keys(entry.cnor)
         locate_and_click(p("serialized.png"))
-        con = pyautogui.locateOnScreen(p("consignment.png"))
-        if con is not None:
-            pyautogui.click(con.left + con.width, con.top + 0.5 * con.height)
-        else:
-            pyautogui.alert("Could not find consignment button!")
-            exit()
+        locate_and_click(p("consignment.png"), pos='r')
 
         send_keys("{TAB 2}" + entry.cost)
 
-    bl = pyautogui.locateOnScreen(p("breaklist.png"))
-    pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)
-    time.sleep(0.3)
+    locate_and_click(p("breaklist.png"), pos="br", stretch=3)
     send_keys(entry.price + "{TAB}")
 
-    lc = pyautogui.locateOnScreen(p("last_cost.png"))
-    pyautogui.click(lc.left + lc.width + 2, lc.top + 0.5 * lc.height)
+    # lc = pyautogui.locateOnScreen(p("last_cost.png"))
+    # pyautogui.click(lc.left + lc.width + 2, lc.top + 0.5 * lc.height)
+    locate_and_click(p("last_cost.png"), pos='r', stretch=2)
     send_keys(entry.cost + "{TAB}")
 
     locate_and_click(p("sales.png"))
-    stor = pyautogui.locateOnScreen(p("storing.png"))
-    pyautogui.click(stor.left + stor.width + 2, stor.top + 0.5 * stor.height)
+    locate_and_click(p("storing.png"), pos='r', stretch=2)
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(p("notes.png"))
@@ -221,7 +220,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
     locate_and_click(p("save.png"))
     time.sleep(2)
 
-    with open("finished.txt", "a") as f:
+    with open("finished.txt", 'a') as f:
         f.write(entry.code + "\n")
 
     return True
@@ -231,21 +230,25 @@ if not os.path.exists("finished.txt"):
     with open("finished.txt", "w") as f:
         f.write("")
 
-open_network()
-enter_maintenance()
-with open("finished.txt", "r") as f:
-    finished = f.readlines()
+try:
+    open_network()
+    enter_maintenance()
+    with open("finished.txt", "r") as f:
+        finished = f.readlines()
 
-print(finished)
-already_entered = []
-first = True
-for i, entry in enumerate(entries):
-    if entry.code not in finished:
-        if not enter_stock(entry, first=first):
-            already_entered.append(entry)
-            first = True
-        else:
-            first = False
+    already_entered = []
+    first = True
+    for i, entry in enumerate(entries):
+        if entry.code not in finished:
+            if not enter_stock(entry, first=first):
+                already_entered.append(entry)
+                first = True
+            else:
+                first = False
+
+except ImageNotFoundError as e:
+    pyautogui.alert(f"Could not find {e}!")
+    exit()
 
 # Step 5: Send a Telegram message to Mom when the program is done
 codes = '\n'.join([e.code for e in already_entered])

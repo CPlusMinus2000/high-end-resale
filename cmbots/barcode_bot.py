@@ -4,7 +4,8 @@ import time
 import os
 
 from platform import platform
-from constants import p, c, locate_and_click, open_network, Entry
+from constants import p, c, locate_and_click, open_network, Entry, \
+    ImageNotFoundError
 from filereader import read_excel
 
 if "Windows" in platform():
@@ -19,7 +20,12 @@ if not os.path.exists(c("barcode.xlsx")):
     )
     exit()
 
-entries = read_excel(c("barcode.xlsx"))
+try:
+    entries = read_excel(c("barcode.xlsx"))
+except ValueError as e:
+    pyautogui.alert(str(e))
+    exit()
+
 print(entries)
 
 # Step 2: Open the RDP window and enter the barcode menu
@@ -54,18 +60,18 @@ def setup() -> None:
     Perform some setup tasks before entering the data.
     """
 
-    pic = pyautogui.locateOnScreen(p("process_in.png"))
-    if pic is not None:
-        pyautogui.click(pic.left + pic.width, pic.top + pic.height // 2)
-
+    locate_and_click(p("process_in.png"), pos='r')
     send_keys("{TAB}I1")
     locate_and_click(p("barcode_on.png"))
     locate_and_click(p("select.png"))
 
-
-open_network()
-enter_stock_labels()
-setup()
+try:
+    open_network()
+    enter_stock_labels()
+    setup()
+except ImageNotFoundError as e:
+    pyautogui.alert(f"Image not found: {e}")
+    exit()
 
 
 # Step 3: Enter the data into the system
@@ -74,21 +80,33 @@ def print_barcode(entry: Entry) -> None:
     Print the barcode for the given entry.
     """
 
-    sn = pyautogui.locateOnScreen(p("stock_number.png"))
-    pyautogui.click(sn.left + sn.width + 2, sn.top + sn.height // 2)
+    locate_and_click(p("stock_number.png"), pos='r', stretch=2)
     send_keys(entry.code + "{TAB}" + entry.code)
     time.sleep(0.1)
     send_keys("{TAB 5}" + entry.location + "{TAB}" + entry.location)
 
-    quan = pyautogui.locateOnScreen(p("quantity.png"))
-    pyautogui.click(quan.left + quan.width + 2, quan.top + quan.height // 2)
+    locate_and_click(p("quantity.png"), pos='r', stretch=2)
     send_keys(entry.quantity)
     locate_and_click(p("ok.png"))
     time.sleep(5 + 0.2 * int(entry.quantity))
 
+    with open("finished_barcodes.txt", 'a') as f:
+        f.write(entry.code + '\n')
 
-for i, entry in enumerate(entries):
-    print_barcode(entry)
-    if pyautogui.locateOnScreen(p("in_stock_labels.png")) is None:
-        locate_and_click(p("file.png"))
-        locate_and_click(p("inventory.png"))
+if not os.path.exists("finished_barcodes.txt"):
+    with open("finished_barcodes.txt", "w") as f:
+        f.write("")
+
+with open("finished_barcodes.txt", "r") as f:
+    finished = f.readlines()
+    entries = [e for e in entries if e.code not in finished]
+
+try:
+    for i, entry in enumerate(entries):
+        print_barcode(entry)
+        if pyautogui.locateOnScreen(p("in_stock_labels.png")) is None:
+            locate_and_click(p("file.png"))
+            locate_and_click(p("inventory.png"))
+except ImageNotFoundError as e:
+    pyautogui.alert(f"Image not found: {e}")
+    exit()

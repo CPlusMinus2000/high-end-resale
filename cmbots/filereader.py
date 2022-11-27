@@ -17,6 +17,12 @@ def read_excel(filename: str) -> List[Entry]:
     for _, df in dfs.items():
         df = df.astype(str)
         titles = list(df.iloc[0])
+        if any([t not in titles for t in ATTRS.values()]):
+            missing = [t for t in ATTRS.values() if t not in titles]
+            raise ValueError(
+                "Excel sheet is missing the columns: " + ", ".join(missing)
+            )
+
         indices = {
             attr: titles.index(value) + 1
             for attr, value in ATTRS.items()
