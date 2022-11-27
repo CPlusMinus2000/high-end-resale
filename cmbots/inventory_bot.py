@@ -198,7 +198,14 @@ def enter_stock(entry: Entry, first=False) -> bool:
     send_keys("^v{TAB}")
     if entry.cnor != "nan":
         send_keys(entry.cnor)
-        locate_and_click(p("serialized.png"))
+        try:
+            locate_and_click(p("serialized.png"))
+        except ImageNotFoundError:
+            # Looks like this consignment item is already in the system
+            locate_and_click(p("cancel.png"))
+            enter_maintenance()
+            return False
+
         locate_and_click(p("consignment.png"), pos='r')
 
         send_keys("{TAB 2}" + entry.cost)
