@@ -8,7 +8,7 @@ Steps:
     for all of the stock maintenance information to be visible.
  2. Move the stock Excel file into the folder "bot_data". The file should have one item per row,
     with the box # of each row matching a sign number.
- 3. Change the Excel file name to "stock.xls".
+ 3. Change the Excel file name to "stock.xls" or "stock.xlsx".
  4. Copy the signs text data into a text file called "signs.txt".
     The signs text should have numbers followed by text data. For example:
 
@@ -18,10 +18,27 @@ Steps:
     35
     Biomorphic green glass vase, ONLY $9999.99. (In other countries this would be $99999.99!)
 
- 5. If there is a file called "finished.txt" in the folder, delete it.
+ 5. If there is a file called "finished.txt" in the bot_data folder, delete it.
  6. Move the signs.txt file into the folder "bot_data".
- 7. Double-click on the file "inventory_bot.py" and wait for a Telegram message.
-  i. The message should say "Finished entering..." and then the program is finished!
+ 7. Double-click on the file "inventory_bot.py" on the desktop.
+ 8. At this point, the program may show some messages on screen talking about the inventory data.
+  i.   If the message says: "Please save the signs data..." or "Please save the stock spreadsheet..."
+       then the spreadsheet and signs information was not saved in the right folder or was saved
+       with the wrong name.
+  ii.  If the message says: "No entries found in the spreadsheet" then the program was unable to find
+       any inventory information in the spreadsheet. Please contact Colin if this happens.
+  iii. If the message says: "No sign data for [number]" then the program could not find the sign
+       for the item in the spreadsheet with Box # [number]. Click OK to accept (the program will 
+       skip entering the notes information) or Cancel to stop the program.
+  iv.  If the message says: "Price mismatch for [number]" then the program detected that the
+       price for the row with box # [number] does not match the sign with that number. It will
+       automatically read the sign and try to find the right price, and display it on screen.
+       Click OK if the guess is correct and you would like to keep it, New Price if you would like
+       to manually enter the correct price or Cancel to stop the program.
+ 9. After the message boxes stop, the program will start moving and clicking.
+    At this point, you just need to wait for a Telegram message.
+  i.  The message should say "Finished entering..." indicating the program is finished!
+  ii. If the message does not arrive after a long time, check the screen to see if there was an error.
 
 IF YOU EVER NEED TO STOP THE PROGRAM FOR ANY REASON, USE WIN + DOWN TO MINIMIZE THE WINDOW.
 THIS WILL PREVENT THE PROGRAM FROM PERFORMING ANY ACTIONS.

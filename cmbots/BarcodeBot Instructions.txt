@@ -1,0 +1,29 @@
+Instructions for operating the BarcodeBot v1.0,
+which prints barcodes from Cougar Mountain automatically.
+
+
+Steps:
+ 1. Open Cougar Mountain in the Network desktop app and log into the HER server.
+    Make sure the window is not full screen, but that it is big enough
+    for all of the stock maintenance information to be visible.
+ 2. Move the stock Excel file into the folder "bot_data". The file should have one item per row,
+    with the box # of each row matching a sign number.
+ 3. Change the Excel file name to "barcode.xls" or "barcode.xlsx".
+ 4. If there is a file called "finished_barcodes.txt" in the bot_data folder, delete it.
+ 5. Double-click on the file "barcode_bot.py" on the desktop.
+ 6. At this point, the program may show some messages on screen talking about the inventory data.
+  i.  If the message says: "Please save the stock spreadsheet..."
+      then the spreadsheet and signs information was not saved in the right folder or was saved
+      with the wrong name.
+  ii. If the message says: "No entries found in the spreadsheet" then the program was unable to find
+      any inventory information in the spreadsheet. Please contact Colin if this happens.
+ 7. After the message boxes stop, the program will start moving and clicking.
+    At this point, you just need to wait for the printer to stop making noises.
+    Check the screen periodically -- if you see an error message, then the program failed
+    (it might have been unable to find a certain image).
+
+IF YOU EVER NEED TO STOP THE PROGRAM FOR ANY REASON, USE WIN + DOWN TO MINIMIZE THE WINDOW.
+THIS WILL PREVENT THE PROGRAM FROM PERFORMING ANY ACTIONS.
+IF YOU NEED TO RESTART THE INVENTORY PROGRAM AFTER STOPPING IT, JUST DOUBLE-CLICK ON THE
+inventory_bot.py FILE AGAIN -- IT WILL AUTOMATICALLY IGNORE ITEMS THAT HAVE ALREADY BEEN ENTERED.
+(THIS IS THE PURPOSE OF THE finished_barcodes.txt FILE.)

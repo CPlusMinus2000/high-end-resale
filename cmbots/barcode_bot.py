@@ -13,15 +13,20 @@ if "Windows" in platform():
 
 
 # Step 1: Read the Excel file
-if not os.path.exists(c("barcode.xlsx")):
+xls = os.path.exists(c("barcode.xls"))
+xlsx = os.path.exists(c("barcode.xlsx"))
+
+
+if not (xls or xlsx):
     pyautogui.alert(
         "Please save the stock spreadsheet in the folder bot_data "
-        "with the name barcode.xlsx."
+        "with the name barcode.xls or barcode.xlsx."
     )
     exit()
 
+name = "barcode.xls" if xls else "barcode.xlsx"
 try:
-    entries = read_excel(c("barcode.xlsx"), mode='b')
+    entries = read_excel(c(name), mode='b')
 except ValueError as e:
     pyautogui.alert(str(e))
     exit()

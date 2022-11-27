@@ -18,15 +18,19 @@ if "Windows" in platform():
 # Do this by opening every page in the spreadsheet using pandas
 # and then read row by row to assemble a list of entries
 
-if not os.path.exists(c("stock.xls")):
+xls = os.path.exists(c("stock.xls"))
+xlsx = os.path.exists(c("stock.xlsx"))
+
+if not (xls or xlsx):
     pyautogui.alert(
         "Please save the stock spreadsheet in the folder bot_data "
-        "with the name stock.xls."
+        "with the name stock.xls or stock.xlsx. and try again."
     )
     exit()
 
+name = "stock.xls" if xls else "stock.xlsx"
 try:
-    entries = read_excel(c("stock.xls"))
+    entries = read_excel(c(name))
 except ValueError as e:
     pyautogui.alert(str(e))
     exit()
@@ -54,7 +58,7 @@ def locate_price(sentence: str) -> str:
 
 if not os.path.exists(c("signs.txt")):
     pyautogui.alert(
-        "Please open the signs document "
+        "Please copy the signs information "
         "and save it in the folder bot_data/ as signs.txt."
     )
     exit()

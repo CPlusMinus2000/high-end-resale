@@ -22,6 +22,10 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
     dfs = pd.read_excel(filename, sheet_name=None)
     for _, df in dfs.items():
         df = df.astype(str)
+        while 'Box' not in df.columns:
+            df.columns = df.iloc[0]
+            df = df[1:]
+
         titles = list(df.iloc[0])
         if any([t not in titles for t in ATTRS.values()]):
             missing = [t for t in ATTRS.values() if t not in titles]
