@@ -4,6 +4,7 @@ from constants import Entry, ATTRS
 
 import pandas as pd
 
+
 def read_excel(filename: str) -> List[Entry]:
     """
     Reads an Excel document of a very specific format
@@ -53,5 +54,5 @@ def read_excel(filename: str) -> List[Entry]:
                     raise ValueError(
                         f"Unused row with index {row[indices['index']]}"
                     )
-    
+
     return entries

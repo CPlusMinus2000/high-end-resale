@@ -1,12 +1,11 @@
 import time
 import os
-import pandas as pd
 import pyautogui
 import telegram_send
 import pyperclip
 
 from platform import platform
-from constants import *
+from constants import p, c, locate_and_click, Entry, open_network
 from filereader import read_excel
 
 if "Windows" in platform():
@@ -41,6 +40,7 @@ def locate_price(sentence: str) -> str:
             return word[word.index("$") + 1:]
 
     return ""
+
 
 if not os.path.exists(c("signs.txt")):
     pyautogui.alert(
@@ -98,9 +98,6 @@ for entry in entries:
                     exit()
 
         entry.notes = signs_map[entry.index]
-        if TYPE_NOTES:
-            for ch in CONVERT:
-                entry.notes = entry.notes.replace(ch, "{" + ch + "}")
 
     else:
         print(f"No sign data for {entry.index}")
@@ -189,7 +186,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
         enter_maintenance()
         return False
 
-    send_keys(entry.description + "{TAB}")
+    pyperclip.copy(entry.description)
+    send_keys("^v{TAB}")
     if entry.cnor != "nan":
         send_keys(entry.cnor)
         locate_and_click(p("serialized.png"))
@@ -199,7 +197,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
         else:
             pyautogui.alert("Could not find consignment button!")
             exit()
-        
+
         send_keys("{TAB 2}" + entry.cost)
 
     bl = pyautogui.locateOnScreen(p("breaklist.png"))
@@ -217,11 +215,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
     send_keys(entry.price + "{TAB}")
 
     locate_and_click(p("notes.png"))
-    if TYPE_NOTES:
-        send_keys(entry.notes, with_spaces=True)
-    else:
-        pyperclip.copy(entry.notes)
-        send_keys("^v")
+    pyperclip.copy(entry.notes)
+    send_keys("^v")
 
     locate_and_click(p("save.png"))
     time.sleep(2)

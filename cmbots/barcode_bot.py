@@ -48,15 +48,16 @@ def enter_stock_labels() -> None:
     for step in steps:
         locate_and_click(step)
 
+
 def setup() -> None:
     """
     Perform some setup tasks before entering the data.
     """
-    
+
     pic = pyautogui.locateOnScreen(p("process_in.png"))
     if pic is not None:
         pyautogui.click(pic.left + pic.width, pic.top + pic.height // 2)
-    
+
     send_keys("{TAB}I1")
     locate_and_click(p("barcode_on.png"))
     locate_and_click(p("select.png"))
@@ -66,12 +67,13 @@ open_network()
 enter_stock_labels()
 setup()
 
+
 # Step 3: Enter the data into the system
 def print_barcode(entry: Entry) -> None:
     """
     Print the barcode for the given entry.
     """
-    
+
     sn = pyautogui.locateOnScreen(p("stock_number.png"))
     pyautogui.click(sn.left + sn.width + 2, sn.top + sn.height // 2)
     send_keys(entry.code + "{TAB}" + entry.code)
@@ -83,6 +85,7 @@ def print_barcode(entry: Entry) -> None:
     send_keys(entry.quantity)
     locate_and_click(p("ok.png"))
     time.sleep(5 + 0.2 * int(entry.quantity))
+
 
 for i, entry in enumerate(entries):
     print_barcode(entry)

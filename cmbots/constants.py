@@ -4,7 +4,6 @@ import pyautogui
 import time
 from dataclasses import dataclass
 
-TYPE_NOTES = False  # Do we type out notes or just copy and paste?
 CONVERT = ("+", "^", "%", "(", ")")
 NETWORKS = ["networks/" + f for f in os.listdir("bot_data/networks")]
 
@@ -37,6 +36,7 @@ ATTRS = {
     "cnor": "Cnor"
 }
 
+
 def c(f: str) -> str:
     """
     Short utility function for formatting file paths
@@ -63,7 +63,7 @@ def open_network() -> None:
         if pyautogui.locateOnScreen(c(network)) is not None:
             pyautogui.click(c(network))
             return
-    
+
     raise Exception("Could not find network icon")
 
 
