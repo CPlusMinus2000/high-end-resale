@@ -5,9 +5,9 @@ import telegram_send
 import pyperclip
 
 from platform import platform
-from constants import p, c, locate_and_click, Entry, open_network, \
+from modules.constants import p, c, locate_and_click, Entry, open_network, \
     ImageNotFoundError
-from filereader import read_excel
+from modules.filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys

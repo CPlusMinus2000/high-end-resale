@@ -1,6 +1,6 @@
 
 from typing import List
-from constants import Entry, ATTRS
+from modules.constants import Entry, ATTRS
 
 import pandas as pd
 
