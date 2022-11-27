@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 
 CONVERT = ("+", "^", "%", "(", ")")
-NETWORKS = ["networks/" + f for f in os.listdir("bot_data/networks")]
+NETWORKS = ["networks/" + f for f in os.listdir("bot_data/images/networks")]
 
 
 @dataclass
