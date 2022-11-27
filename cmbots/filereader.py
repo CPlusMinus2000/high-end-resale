@@ -5,9 +5,15 @@ from constants import Entry, ATTRS
 import pandas as pd
 
 def read_excel(filename: str) -> List[Entry]:
+    """
+    Reads an Excel document of a very specific format
+    (must contain the column headers contained in ATTRS)
+    and compiles it into a list of Entry objects, which are returned.
+    """
+
     entries: List[Entry] = []
     dfs = pd.read_excel(filename, sheet_name=None)
-    for sheet_name, df in dfs.items():
+    for _, df in dfs.items():
         df = df.astype(str)
         titles = list(df.iloc[0])
         indices = {
