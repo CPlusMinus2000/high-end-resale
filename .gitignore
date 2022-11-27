@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# DS_Store
+.DS_Store
+
 # Data
 cougar_data/
 cmbots/bot_data/*.xls
