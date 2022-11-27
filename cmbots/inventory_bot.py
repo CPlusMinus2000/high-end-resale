@@ -195,14 +195,15 @@ def enter_stock(entry: Entry, first=False) -> bool:
         return False
 
     pyperclip.copy(entry.description)
-    send_keys("^v{TAB}")
+    send_keys("^v")
     if entry.cnor != "nan":
-        send_keys(entry.cnor)
+        send_keys("{TAB}" + entry.cnor)
         try:
             locate_and_click(p("serialized.png"))
         except ImageNotFoundError:
             # Looks like this consignment item is already in the system
             locate_and_click(p("cancel.png"))
+            locate_and_click(p("no.png"))
             locate_and_click(p("file.png"))
             locate_and_click(p("main_menu.png"))
             enter_maintenance()
