@@ -64,6 +64,7 @@ for s in signs:
     for part in i.split(" & "):
         signs_map[part.strip(".")] = t.split("   ")[0].strip()
 
+requested = set()
 for entry in entries:
     if entry.index in signs_map:
         # Check that the price is contained in the text
@@ -105,7 +106,7 @@ for entry in entries:
 
         entry.notes = signs_map[entry.index]
 
-    else:
+    elif entry.index not in requested:
         print(f"No sign data for {entry.index}")
         res = pyautogui.confirm(
             text=f"No sign data for {entry.index}. Continue?",
@@ -115,6 +116,7 @@ for entry in entries:
         if res == "Cancel":
             exit()
 
+        requested.add(entry.index)
         continue
 
 print(entries[0])

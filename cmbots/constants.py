@@ -64,8 +64,8 @@ def open_network() -> None:
     """
 
     for network in NETWORKS:
-        if pyautogui.locateOnScreen(c(network)) is not None:
-            pyautogui.click(c(network))
+        if pyautogui.locateOnScreen(p(network)) is not None:
+            pyautogui.click(p(network))
             return
 
     raise Exception("Could not find network icon")
