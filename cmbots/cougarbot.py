@@ -5,7 +5,6 @@ import pyautogui
 import telegram_send
 import pyperclip
 
-from typing import List
 from platform import platform
 from constants import *
 from filereader import read_excel
@@ -100,8 +99,8 @@ for entry in entries:
 
         entry.notes = signs_map[entry.index]
         if TYPE_NOTES:
-            for c in CONVERT:
-                entry.notes = entry.notes.replace(c, "{" + c + "}")
+            for ch in CONVERT:
+                entry.notes = entry.notes.replace(ch, "{" + ch + "}")
 
     else:
         print(f"No sign data for {entry.index}")
@@ -128,30 +127,30 @@ def enter_maintenance() -> None:
     """
 
     steps = [
-        c(i) for i in [
+        p(i) for i in [
             "file.png", "inventory.png",
             "stock.png", "stock_maintenance.png"
         ]
     ]
 
-    if pyautogui.locateOnScreen(c("information.png")) is not None:
-        locate_and_click(c("no.png"))
-    elif pyautogui.locateOnScreen(c("number.png")) is not None:
+    if pyautogui.locateOnScreen(p("information.png")) is not None:
+        locate_and_click(p("no.png"))
+    elif pyautogui.locateOnScreen(p("number.png")) is not None:
         # Already ready to start entering
         return
-    elif pyautogui.locateOnScreen(c("stock.png")) is None:
+    elif pyautogui.locateOnScreen(p("stock.png")) is None:
         # Regular, no modifications
         pass
-    elif pyautogui.locateOnScreen(c("in_stock.png")) is None:
+    elif pyautogui.locateOnScreen(p("in_stock.png")) is None:
         # Menu is not visible. Enter maintenance mode
         steps = steps[2:]
     else:
         # Menu is visible, but can't enter numbers. Exit.
-        locate_and_click(c("file.png"))
-        locate_and_click(c("exit.png"))
-        if pyautogui.locateOnScreen(c("information.png")) is not None:
+        locate_and_click(p("file.png"))
+        locate_and_click(p("exit.png"))
+        if pyautogui.locateOnScreen(p("information.png")) is not None:
             # Made edits, have to cancel
-            locate_and_click(c("no.png"))
+            locate_and_click(p("no.png"))
 
     for step in steps:
         locate_and_click(step)
@@ -171,7 +170,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     # Enter the stock number
     if first:
-        locate_and_click(c("number.png"))
+        locate_and_click(p("number.png"))
 
     send_keys(entry.code + "{TAB}")
 
@@ -183,18 +182,18 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     # Now try to find the last cost box. If it is not on screen,
     # then there must be a duplicate
-    dup = pyautogui.locateOnScreen(c("notes.png"))
+    dup = pyautogui.locateOnScreen(p("notes.png"))
     if dup is None:
         # Duplicate detected.
-        locate_and_click(c("cancel.png"))
+        locate_and_click(p("cancel.png"))
         enter_maintenance()
         return False
 
     send_keys(entry.description + "{TAB}")
     if entry.cnor != "nan":
         send_keys(entry.cnor)
-        locate_and_click(c("serialized.png"))
-        con = pyautogui.locateOnScreen(c("consignment.png"))
+        locate_and_click(p("serialized.png"))
+        con = pyautogui.locateOnScreen(p("consignment.png"))
         if con is not None:
             pyautogui.click(con.left + con.width, con.top + 0.5 * con.height)
         else:
@@ -203,28 +202,28 @@ def enter_stock(entry: Entry, first=False) -> bool:
         
         send_keys("{TAB 2}" + entry.cost)
 
-    bl = pyautogui.locateOnScreen(c("breaklist.png"))
+    bl = pyautogui.locateOnScreen(p("breaklist.png"))
     pyautogui.click(bl.left + bl.width, bl.top + bl.height + 3)
     time.sleep(0.3)
     send_keys(entry.price + "{TAB}")
 
-    lc = pyautogui.locateOnScreen(c("last_cost.png"))
+    lc = pyautogui.locateOnScreen(p("last_cost.png"))
     pyautogui.click(lc.left + lc.width + 2, lc.top + 0.5 * lc.height)
     send_keys(entry.cost + "{TAB}")
 
-    locate_and_click(c("sales.png"))
-    stor = pyautogui.locateOnScreen(c("storing.png"))
+    locate_and_click(p("sales.png"))
+    stor = pyautogui.locateOnScreen(p("storing.png"))
     pyautogui.click(stor.left + stor.width + 2, stor.top + 0.5 * stor.height)
     send_keys(entry.price + "{TAB}")
 
-    locate_and_click(c("notes.png"))
+    locate_and_click(p("notes.png"))
     if TYPE_NOTES:
         send_keys(entry.notes, with_spaces=True)
     else:
         pyperclip.copy(entry.notes)
         send_keys("^v")
 
-    locate_and_click(c("save.png"))
+    locate_and_click(p("save.png"))
     time.sleep(2)
 
     with open("finished.txt", "a") as f:

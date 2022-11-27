@@ -45,6 +45,14 @@ def c(f: str) -> str:
     return f"bot_data/{f}"
 
 
+def p(f: str) -> str:
+    """
+    Short utility function for formatting image file paths
+    """
+
+    return f"bot_data/images/{f}"
+
+
 def open_network() -> None:
     """
     Launch the remote desktop application by clicking on the icon.
