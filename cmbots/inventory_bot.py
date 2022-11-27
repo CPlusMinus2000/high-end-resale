@@ -31,6 +31,10 @@ except ValueError as e:
     pyautogui.alert(str(e))
     exit()
 
+if not entries:
+    pyautogui.alert("No entries found in the spreadsheet.")
+    exit()
+
 print(entries[1])
 
 # Step 2: Read the Word document containing the sign data to extract notes.
@@ -185,7 +189,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
     else:
         send_keys(entry.location + "{TAB 5}")
 
-    # Now try to find the last cost box. If it is not on screen,
+    # Now try to find the notes box. If it is not on screen,
     # then there must be a duplicate
     dup = pyautogui.locateOnScreen(p("notes.png"))
     if dup is None:
