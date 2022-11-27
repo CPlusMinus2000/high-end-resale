@@ -4,7 +4,7 @@ import time
 import os
 
 from platform import platform
-from constants import c, locate_and_click, open_network
+from constants import c, locate_and_click, open_network, Entry
 from filereader import read_excel
 
 if "Windows" in platform():
@@ -67,3 +67,11 @@ enter_stock_labels()
 setup()
 
 # Step 3: Enter the data into the system
+def print_barcode(entry: Entry) -> None:
+    """
+    Print the barcode for the given entry.
+    """
+    
+    sn = pyautogui.locateOnScreen(c("stock_number.png"))
+    pyautogui.click(sn.left + sn.width + 2, sn.top + sn.height // 2)
+    send_keys(entry.code + "{TAB}" + entry.code)
