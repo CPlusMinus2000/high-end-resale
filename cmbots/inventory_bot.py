@@ -96,10 +96,10 @@ for entry in entries:
                     if new_price is None:
                         pass
 
-                    entry.price = new_price
+                    entry.price = new_price.replace(',', '')
 
                 elif res == "OK":
-                    entry.price = guess
+                    entry.price = guess.replace(',', '')
 
             else:
                 # This probably shouldn't be happening, but we can check it
