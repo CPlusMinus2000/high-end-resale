@@ -1,4 +1,4 @@
-Instructions for operating the CougarBot v1.0,
+Instructions for operating the InventoryBot v1.0,
 which adds inventory items to Cougar Mountain automatically.
 
 
@@ -6,8 +6,7 @@ Steps:
  1. Open Cougar Mountain in the Network desktop app and log into the HER server.
     Make sure the window is not full screen, but that it is big enough
     for all of the stock maintenance information to be visible.
-    Also make sure that the network icon on the bottom of the screen is on the very left.
- 2. Move the Excel file into the folder "bot_data". The file should have one item per row,
+ 2. Move the stock Excel file into the folder "bot_data". The file should have one item per row,
     with the box # of each row matching a sign number.
  3. Change the Excel file name to "stock.xls".
  4. Copy the signs text data into a text file called "signs.txt".
@@ -19,8 +18,13 @@ Steps:
     35
     Biomorphic green glass vase, ONLY $9999.99. (In other countries this would be $99999.99!)
 
- 5. Move the signs.txt file into the folder "bot_data".
- 6. If there is a file named "finished.txt" in the folder, delete it.
- 7. Double-click on the file "cougarbot.py" and wait for a Telegram message.
-  a. If the message says "error: item already in system", ...
-  b. If the message says "Done! All signs entered." then the program is finished!
+ 5. If there is a file called "finished.txt" in the folder, delete it.
+ 6. Move the signs.txt file into the folder "bot_data".
+ 7. Double-click on the file "inventory_bot.py" and wait for a Telegram message.
+  i. The message should say "Finished entering..." and then the program is finished!
+
+IF YOU EVER NEED TO STOP THE PROGRAM FOR ANY REASON, USE WIN + DOWN TO MINIMIZE THE WINDOW.
+THIS WILL PREVENT THE PROGRAM FROM PERFORMING ANY ACTIONS.
+IF YOU NEED TO RESTART THE INVENTORY PROGRAM AFTER STOPPING IT, JUST DOUBLE-CLICK ON THE
+inventory_bot.py FILE AGAIN -- IT WILL AUTOMATICALLY IGNORE ITEMS THAT HAVE ALREADY BEEN ENTERED.
+(THIS IS THE PURPOSE OF THE finished.txt FILE.)

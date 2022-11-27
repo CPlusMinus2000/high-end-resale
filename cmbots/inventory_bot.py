@@ -247,10 +247,6 @@ for i, entry in enumerate(entries):
         else:
             first = False
 
-print(*[e.code for e in already_entered], sep='\n')
-with open("already_entered.txt", "w") as f:
-    f.write("\n".join([e.code for e in already_entered]))
-
 # Step 5: Send a Telegram message to Mom when the program is done
 codes = '\n'.join([e.code for e in already_entered])
 message = (
