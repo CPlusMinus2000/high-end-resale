@@ -20,8 +20,11 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
 
     entries: List[Entry] = []
     dfs = pd.read_excel(filename, sheet_name=None)
-    for _, df in dfs.items():
+    for sheetname, df in dfs.items():
         df = df.astype(str)
+        if not sheetname[0].isdigit():
+            continue
+
         while 'Box' not in df.columns:
             df.columns = df.iloc[0]
             df = df[1:]
@@ -72,5 +75,9 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     raise ValueError(
                         f"Unused row with index {row[indices['index']]}"
                     )
+
+    for entry in entries:
+        entry["cost"] = entry["cost"].replace(',', '')
+        entry["price"] = entry["price"].replace(',', '')
 
     return entries
