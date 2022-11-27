@@ -75,3 +75,17 @@ def print_barcode(entry: Entry) -> None:
     sn = pyautogui.locateOnScreen(c("stock_number.png"))
     pyautogui.click(sn.left + sn.width + 2, sn.top + sn.height // 2)
     send_keys(entry.code + "{TAB}" + entry.code)
+    time.sleep(0.1)
+    send_keys("{TAB 5}" + entry.location + "{TAB}" + entry.location)
+
+    quan = pyautogui.locateOnScreen(c("quantity.png"))
+    pyautogui.click(quan.left + quan.width + 2, quan.top + quan.height // 2)
+    send_keys(entry.quantity)
+    locate_and_click(c("ok.png"))
+    time.sleep(5 + 0.2 * int(entry.quantity))
+
+for i, entry in enumerate(entries):
+    print_barcode(entry)
+    if pyautogui.locateOnScreen(c("in_stock_labels.png")) is None:
+        locate_and_click(c("file.png"))
+        locate_and_click(c("inventory.png"))
