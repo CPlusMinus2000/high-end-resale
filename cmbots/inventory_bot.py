@@ -203,6 +203,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
         except ImageNotFoundError:
             # Looks like this consignment item is already in the system
             locate_and_click(p("cancel.png"))
+            locate_and_click(p("file.png"))
+            locate_and_click(p("main_menu.png"))
             enter_maintenance()
             return False
 
