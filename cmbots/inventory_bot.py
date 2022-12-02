@@ -11,6 +11,8 @@ from modules.filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
+else:
+    send_keys = lambda t: pyautogui.write(t, interval=0.05)
 
 
 # So here's how the bot is going to need to work
