@@ -1,5 +1,6 @@
 import time
 import os
+import re
 import pyautogui
 import telegram_send
 import pyperclip
@@ -66,13 +67,14 @@ if not os.path.exists(c("signs.txt")):
     exit()
 
 with open(c("signs.txt"), "r") as f:
-    signs = f.read().split("\n\n")
+    signs = f.read().strip().split("\n\n")
 
 signs_map = {}
 for s in signs:
-    i, t = s.splitlines()
-    for part in i.split(" & "):
-        signs_map[part.strip(".")] = t.split("   ")[0].strip()
+    lines = s.splitlines()
+    i = re.search(r"\d+", lines[0]).group(0)
+    t = '\n'.join(lines[1:])
+    signs_map[i] = t.split("   ")[0].strip()
 
 requested = set()
 for entry in entries:
