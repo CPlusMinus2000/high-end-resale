@@ -70,6 +70,7 @@ def setup() -> None:
     locate_and_click(p("barcode_on.png"))
     locate_and_click(p("select.png"))
 
+
 try:
     open_network()
     enter_stock_labels()
@@ -97,6 +98,7 @@ def print_barcode(entry: Entry) -> None:
 
     with open("finished_barcodes.txt", 'a') as f:
         f.write(entry.code + '\n')
+
 
 if not os.path.exists("finished_barcodes.txt"):
     with open("finished_barcodes.txt", "w") as f:
