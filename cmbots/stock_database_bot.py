@@ -58,7 +58,7 @@ try:
         locate_and_click(p("save.png"), wait=3)
         send_keys("^c")
         code = pyperclip.paste()
-        if code <= ordered[0]:
+        if ordered and code <= ordered[0]:
             break
         elif code in found:
             locate_and_click(p("right.png"))
