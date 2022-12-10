@@ -3,10 +3,16 @@ import os
 import pyautogui
 import time
 from dataclasses import dataclass
+from collections import namedtuple
 
 CONVERT = ("+", "^", "%", "(", ")")
 NETWORKS = ["networks/" + f for f in os.listdir("bot_data/images/networks")]
 
+
+EntryTuple = namedtuple(
+    "EntryTuple",
+    "code description location price notes"
+)
 
 @dataclass
 class Entry:
@@ -25,7 +31,15 @@ class Entry:
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
-
+    
+    def to_namedtuple(self):
+        return EntryTuple(
+            self.code,
+            self.description,
+            self.location,
+            self.price,
+            self.notes
+        )
 
 class ImageNotFoundError(Exception):
     pass
@@ -118,3 +132,38 @@ def locate_and_click(
     time.sleep(0.2)
     pyautogui.click()
     time.sleep(wait)
+
+
+def enter_maintenance() -> None:
+    """
+    Use locate_and_click to enter the stock maintenance screen.
+    """
+
+    steps = [
+        p(i) for i in [
+            "file.png", "inventory.png",
+            "stock.png", "stock_maintenance.png"
+        ]
+    ]
+
+    if pyautogui.locateOnScreen(p("information.png")) is not None:
+        locate_and_click(p("no.png"))
+    elif pyautogui.locateOnScreen(p("number.png")) is not None:
+        # Already ready to start entering
+        return
+    elif pyautogui.locateOnScreen(p("stock.png")) is None:
+        # Regular, no modifications
+        pass
+    elif pyautogui.locateOnScreen(p("in_stock.png")) is None:
+        # Menu is not visible. Enter maintenance mode
+        steps = steps[2:]
+    else:
+        # Menu is visible, but can't enter numbers. Exit.
+        locate_and_click(p("file.png"))
+        locate_and_click(p("exit.png"))
+        if pyautogui.locateOnScreen(p("information.png")) is not None:
+            # Made edits, have to cancel
+            locate_and_click(p("no.png"))
+
+    for step in steps:
+        locate_and_click(step)

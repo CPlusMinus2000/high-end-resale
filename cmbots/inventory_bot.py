@@ -66,8 +66,21 @@ if not os.path.exists(c("signs.txt")):
     )
     exit()
 
-with open(c("signs.txt"), "r") as f:
-    signs = f.read().strip().split("\n\n")
+try:
+    with open(c("signs.txt"), 'r') as f:
+        signs = f.read().strip().split("\n\n")
+except UnicodeDecodeError as e:
+    if "codec can't decode byte 0x93" in str(e):
+        with open(c("signs.txt"), 'r', encoding="latin-1") as f:
+            signs = f.read().strip()
+
+        signs = signs.replace("0x93", '"').replace('?', '" ')
+        signs = signs.split("\n\n")
+    else:
+        pyautogui.alert(
+            "The signs file looks weird... I can't read it! :("
+        )
+        raise e
 
 signs_map = {}
 for s in signs:
@@ -140,41 +153,7 @@ print(entries[0])
 # locate the right places to click on the screen to insert text and save
 # Alternatively, use human supervision to find the right values
 
-
-def enter_maintenance() -> None:
-    """
-    Use locate_and_click to enter the stock maintenance screen.
-    """
-
-    steps = [
-        p(i) for i in [
-            "file.png", "inventory.png",
-            "stock.png", "stock_maintenance.png"
-        ]
-    ]
-
-    if pyautogui.locateOnScreen(p("information.png")) is not None:
-        locate_and_click(p("no.png"))
-    elif pyautogui.locateOnScreen(p("number.png")) is not None:
-        # Already ready to start entering
-        return
-    elif pyautogui.locateOnScreen(p("stock.png")) is None:
-        # Regular, no modifications
-        pass
-    elif pyautogui.locateOnScreen(p("in_stock.png")) is None:
-        # Menu is not visible. Enter maintenance mode
-        steps = steps[2:]
-    else:
-        # Menu is visible, but can't enter numbers. Exit.
-        locate_and_click(p("file.png"))
-        locate_and_click(p("exit.png"))
-        if pyautogui.locateOnScreen(p("information.png")) is not None:
-            # Made edits, have to cancel
-            locate_and_click(p("no.png"))
-
-    for step in steps:
-        locate_and_click(step)
-
+from modules.constants import enter_maintenance
 
 # Step 4: Loop through the entries and insert the data into the system,
 # checking during insertion that the index number does not already exist

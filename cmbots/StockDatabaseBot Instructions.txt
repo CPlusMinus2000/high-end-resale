@@ -1,0 +1,26 @@
+Instructions for operating the StockDatabaseBot v1.0,
+which reads database items from Cougar Mountain automatically.
+
+
+Steps:
+ 1. Open Cougar Mountain in the Network desktop app and log into the HER server.
+    Make sure the window is not full screen, but that it is big enough
+    for all of the stock maintenance information to be visible.
+ 2. If you already have a partially complete stock database Excel file,
+    save it in the folder "bot_data" with the name "stock_database.xlsx".
+ 3. Double-click on the file "stock_database_bot.py" on the desktop.
+ 4. At this point, the program may show some messages on screen talking about the inventory data.
+  i.  If the message says: "Please save the stock spreadsheet..."
+      then the spreadsheet and signs information was not saved in the right folder or was saved
+      with the wrong name.
+  ii. For other error messages, try to fix the error based on the message.
+      If it doesn't make any sense, please contact Colin.
+ 5. After the message boxes stop, the program will start moving and clicking.
+    At this point, you just need to wait for the printer to stop making noises.
+    Check the screen periodically -- if you see an error message, then the program failed
+    (it might have been unable to find a certain image).
+
+IF YOU EVER NEED TO STOP THE PROGRAM FOR ANY REASON, USE WIN + DOWN TO MINIMIZE THE WINDOW.
+THIS WILL PREVENT THE PROGRAM FROM PERFORMING ANY ACTIONS.
+IF YOU NEED TO RESTART THE BARCODE PROGRAM AFTER STOPPING IT, JUST DOUBLE-CLICK ON THE
+barcode_bot.py FILE AGAIN -- IT WILL AUTOMATICALLY IGNORE ITEMS THAT HAVE ALREADY BEEN FOUND.
