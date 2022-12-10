@@ -46,6 +46,7 @@ elif not REFRESH:
     exit()
 
 initial = len(found)
+ordered = sorted(found)
 
 # Step 2: Enter the find menu
 try:
@@ -57,13 +58,14 @@ try:
         locate_and_click(p("save.png"), wait=3)
         send_keys("^c")
         code = pyperclip.paste()
-        if code <= found[0]:
+        if code <= ordered[0]:
             break
         elif code in found:
             locate_and_click(p("right.png"))
             continue
         else:
             found.add(code)
+            ordered.append(code)
 
         send_keys("{TAB}^c")
         location = pyperclip.paste()
