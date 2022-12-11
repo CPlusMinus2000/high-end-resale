@@ -118,12 +118,10 @@ try:
         if pyautogui.locateOnScreen(p("information.png")) is not None:
             locate_and_click(p("no.png"))
 
-        if counter > 3:
-            break
-
-        # Every 20 entries, save the results
-        data_temp = pd.concat([data, pd.DataFrame.from_records(entries)])
-        data_temp.to_excel("bot_data/stock_database.xlsx", index=False)
+        # Every 20 new entries, save the results
+        if len(entries) % 20 == 0:
+            data_temp = pd.concat([data, pd.DataFrame.from_records(entries)])
+            data_temp.to_excel("bot_data/stock_database.xlsx", index=False)
 
 except ImageNotFoundError as e:
     pyautogui.alert(f"Could not find image {e}!")
