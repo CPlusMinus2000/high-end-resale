@@ -72,13 +72,17 @@ try:
         send_keys("{TAB}")
         time.sleep(1)
         locate_and_click(p("edit.png"))
-        send_keys("{TAB}^c")
+        if pyautogui.locateOnScreen(p("grey1.png")) is not None:
+            send_keys("^c")
+        else:
+            send_keys("{TAB}^c")
+
         description = pyperclip.paste()
 
         locate_and_click(p("sales.png"))
         locate_and_click(p("storing.png"), pos='r', stretch=2)
         send_keys("^c")
-        price = pyperclip.paste()[:-2]
+        price = pyperclip.paste()
 
         locate_and_click(p("notes_small.png"))
         # Hold Shift, click on the corner
