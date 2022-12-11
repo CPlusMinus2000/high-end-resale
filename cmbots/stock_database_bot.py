@@ -75,7 +75,8 @@ try:
         send_keys("{TAB}^c")
         description = pyperclip.paste()
 
-        locate_and_click(p("breaklist.png"), pos="br", stretch=3)
+        locate_and_click(p("sales.png"))
+        locate_and_click(p("storing.png"), pos='r', stretch=2)
         send_keys("^c")
         price = pyperclip.paste()[:-2]
 
@@ -104,7 +105,6 @@ try:
     
         # Save the data
         entry = EntryTuple(code, description, location, price, notes)
-        print(entry)
         entries.append(entry._asdict())
 
         # Advance!
