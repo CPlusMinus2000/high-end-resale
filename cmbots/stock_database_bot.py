@@ -6,7 +6,7 @@ import pyperclip
 import pandas as pd
 
 from platform import platform
-from modules.constants import p, c, locate_and_click, Entry, EntryTuple, \
+from modules.constants import p, locate_and_click, EntryTuple, \
     open_network, ImageNotFoundError, enter_maintenance
 
 if "Windows" in platform():
