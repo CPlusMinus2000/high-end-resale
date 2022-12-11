@@ -38,12 +38,6 @@ if not REFRESH and os.path.exists("bot_data/stock_database.xlsx"):
         found.update(df["code"].values)
 
     data = pd.concat(sheets.values())
-elif not REFRESH:
-    pyautogui.alert(
-        "Please save the stock spreadsheet in the folder bot_data "
-        "with the name stock_database.xlsx."
-    )
-    exit()
 
 initial = len(found)
 ordered = sorted(found)
