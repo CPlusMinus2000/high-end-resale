@@ -42,7 +42,7 @@ if not entries:
     pyautogui.alert("No entries found in the spreadsheet.")
     exit()
 
-print(entries[0])
+print(entries)
 
 # Step 2: Read the Word document containing the sign data to extract notes.
 # Do this by opening the Word document and then reading the text
@@ -173,15 +173,17 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     send_keys(entry.code + "{TAB}")
     tabs = 5
-    in_system = pyautogui.locateOnScreen(p("description.png"))
-    if in_system is None:
+    on_hand = pyautogui.locateOnScreen(p("on_hand.png"))
+    if on_hand is None:
+        first = False
         tabs -= 1
 
     # Enter the location and description
     if first:
-        send_keys(entry.location + "{TAB 2}I1{TAB 3}")
+        tabs -= 2
+        send_keys(entry.location + "{TAB 2}I1{TAB %d}" % tabs)
     else:
-        send_keys(entry.location + "{TAB %s}" % tabs)
+        send_keys(entry.location + "{TAB %d}" % tabs)
 
     # Now try to find the notes box. If it is not on screen,
     # then there must be a duplicate
@@ -195,7 +197,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     pyperclip.copy(entry.description)
     send_keys("^v")
-    if entry.cnor != "nan":
+    consign_grey = pyautogui.locateOnScreen(p("consignment_grey.png"))
+    if entry.cnor != "nan" and consign_grey is not None:
         send_keys("{TAB}" + entry.cnor)
         try:
             locate_and_click(p("serialized.png"))
@@ -209,7 +212,6 @@ def enter_stock(entry: Entry, first=False) -> bool:
             return False
 
         locate_and_click(p("consignment.png"), pos='r')
-
         send_keys("{TAB 2}" + entry.cost)
 
     locate_and_click(p("breaklist.png"), pos="br", stretch=3)
