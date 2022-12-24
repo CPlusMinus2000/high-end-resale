@@ -172,12 +172,16 @@ def enter_stock(entry: Entry, first=False) -> bool:
         locate_and_click(p("number.png"))
 
     send_keys(entry.code + "{TAB}")
+    tabs = 5
+    in_system = pyautogui.locateOnScreen(p("description.png"))
+    if in_system is None:
+        tabs -= 1
 
     # Enter the location and description
     if first:
         send_keys(entry.location + "{TAB 2}I1{TAB 3}")
     else:
-        send_keys(entry.location + "{TAB 5}")
+        send_keys(entry.location + "{TAB %s}" % tabs)
 
     # Now try to find the notes box. If it is not on screen,
     # then there must be a duplicate
