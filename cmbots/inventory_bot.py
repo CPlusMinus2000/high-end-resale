@@ -198,7 +198,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
     pyperclip.copy(entry.description)
     send_keys("^v")
     consign_grey = pyautogui.locateOnScreen(p("consignment_grey.png"))
-    if entry.cnor != "nan" and consign_grey is not None:
+    if entry.cnor.strip() not in ["nan", ''] and consign_grey is not None:
         send_keys("{TAB}" + entry.cnor)
         try:
             locate_and_click(p("serialized.png"))
@@ -213,6 +213,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
         locate_and_click(p("consignment.png"), pos='r')
         send_keys("{TAB 2}" + entry.cost)
+    elif entry.cnor in ["nan", '']:
+        send_keys("{TAB}{BACK}")
 
     locate_and_click(p("breaklist.png"), pos="br", stretch=3)
     send_keys(entry.price + "{TAB}")
