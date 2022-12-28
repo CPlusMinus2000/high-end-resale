@@ -10,6 +10,8 @@ from modules.filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
+else:
+    from pyautogui import typewrite as send_keys
 
 
 # Step 1: Read the Excel file

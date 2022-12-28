@@ -83,7 +83,7 @@ def open_network() -> None:
             pyautogui.click(p(network))
             return
 
-    raise Exception("Could not find network icon")
+    raise ImageNotFoundError("Could not find network icon")
 
 
 POSITIONS = {
