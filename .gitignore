@@ -139,3 +139,4 @@ cmbots/bot_data/*.txt
 cmbots/finished.txt
 cmbots/finished_barcodes.txt
 cmbots/already_entered.txt
+gl/*.txt
