@@ -14,6 +14,19 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
     Mode represents the reading mode, which is important for small details.
     'i': Inventory mode, could possibly have two locations per row
     'b': Barcode mode, only one location per row
+
+    I'll take this moment to elaborate a bit more on the different modes
+    because it's probably pretty confusing. In Inventory Mode, the different
+    locations might both be populated, and the convention is as follows:
+     - No location data given -> put an entry in Abdn.
+     - Otherwise, follow the location data given. Abdn, Hby, both.
+       *EXCEPT, even if only Hby is ticked, we put an entry in Abdn anyway.
+        This is maybe bizarre behaviour but it makes things more convenient.
+    In barcode mode, however, location is less important. In fact, I used
+    to think there was some semblance of importance, but the current
+    method (subject to change) is to default to Abdn for everything.
+    The logic may get a little hard to follow though as I leave old and dead
+    code lying around waiting to be used or killed off.
     """
 
     assert mode in ['i', 'b']
@@ -32,7 +45,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
             df = df[1:]
 
         titles = list(df.iloc[0])
-        print(titles)
+        print(f"{titles=}")
         if any([t not in titles for t in ATTRS.values()]):
             missing = [t for t in ATTRS.values() if t not in titles]
             cols = list(df.columns)
@@ -55,7 +68,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
         for row in df.itertuples():
             if row[indices["index"]] not in ["nan", "#"]:
                 count = 0
-                mode_check = row[qindex + 1] == "nan" if mode == 'b' else True
+                mode_check = True # Right now, ABDN is always used
                 if mode_check or row[qindex] in ['x', 'X']:
                     entry = Entry()
                     for attr, index in indices.items():
@@ -65,12 +78,12 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # entry["quantity"] = q
                     entry["location"] = "ABDN"
                     if entry["cnor"] != "nan" and entry["cnor"].strip():
-                        entry["cnor"] = consignor
+                        entry["cnor"] = consignors
 
                     entries.append(entry)
                     count += 1
 
-                mode_check = row[qindex] == "nan" if mode == 'b' else True
+                mode_check = mode != 'b'
                 if row[qindex + 1] != "nan" and mode_check:
                     entry = Entry()
                     for attr, index in indices.items():
