@@ -78,7 +78,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # entry["quantity"] = q
                     entry["location"] = "ABDN"
                     if entry["cnor"] != "nan" and entry["cnor"].strip():
-                        entry["cnor"] = consignors
+                        entry["cnor"] = consignor
 
                     entries.append(entry)
                     count += 1
