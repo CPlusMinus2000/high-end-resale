@@ -1,6 +1,6 @@
 
 import re
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 from decimal import Decimal
 from datetime import datetime
@@ -20,9 +20,17 @@ MONTHS = {
     "December": 12
 }
 
+MONTH_INDICES = {v: k for k, v in MONTHS.items()}
 LOCATIONS = ["Ware", "Hby", "Abdn"]
-TAGS = ["AP", "AR", "GL"]
+POSITIONS = ["Staff", "Employer"]
+TAGS = ["AP", "AR", "GL", "PS", "PR"]
 TAG_INDEX = 50
+
+BR1 = "1BRKIN"
+BR2 = "2BRKIN"
+
+# How far into a line the amount will start at for credits
+# This assumes the line has been stripped first
 CREDIT_INDEX = 74
 
 # =============================================================================
@@ -36,7 +44,7 @@ def location(line: str, uppercase: bool=False) -> Optional[str]:
 
     for loc in LOCATIONS:
         if uppercase:
-            loc = loc.upper()
+            loc = loc.replace("Ware", "Warehouse").upper()
 
         if loc in line:
             return loc
@@ -124,7 +132,7 @@ def extract_tag(line: str) -> Optional[str]:
     return None
 
 
-def extract_amt(line: str) -> Tuple[Decimal, bool]:
+def extract_amt(line: str, mul: Optional[int]=None) -> Tuple[Decimal, bool]:
     """
     Extract the amount from a line.
 
@@ -136,11 +144,19 @@ def extract_amt(line: str) -> Tuple[Decimal, bool]:
     The existence of these characters gives me a headache.
     """
 
-    mul = 1 if len(line) < CREDIT_INDEX else -1
+    if mul is None:
+        mul = 1 if len(line) < CREDIT_INDEX else -1
+
+    assert mul in [-1, 1]
+
     cand = line.split()[-1].replace(',', '')
     if len(line) > CREDIT_INDEX:
         return Decimal(re.findall(r"\d+\.\d\d", cand)[0]) * mul, True
+    elif re.fullmatch(r"\d+\.\d\d", cand):
+        return Decimal(cand) * mul, False
     elif re.match(r"\d+\.\d\d", cand):
+        # Interesting
+        print(f"Very interesting, {cand}")
         return Decimal(cand) * mul, False
     elif re.search(r"\d+\.\d\d", cand) and mul == 1:
         amt = Decimal(re.findall(r"\d+\.\d\d", cand)[0]) * mul
@@ -155,6 +171,68 @@ def extract_amt(line: str) -> Tuple[Decimal, bool]:
 
 CFLOAT = "Cash Float-{loc}"
 CCAOUT = "Cash chequing account-Out"
+TDBIZ = "TD Business Investor Account"
+USCHEQ = "US $ Chequing Account"
+USEXCH = "US $ Account Exchange"
+ACCREC = "Accounts Receivalbe"
+GSTINC = "GST Input Credit"
+INVENT = "Inventory"
+PREPAY = "Prepaid"
+ACCPAY = "Accounts Payable"
+ACCPAYC = "Accounts Payable-Consignment"
+USACCP = "US Accounts Payable"
+CPPPAY = "CPP Payable-{pos}"
+EIPAY = "EI Payable-{pos}"
+PTPAY = "Payroll Tax Payable"
+GSTPAY = "GST Payable"
+PSTPAY = "PST Payable"
+CORTPAY = "Corporate Taxes Payable"
+DTSHR = "Due to Shareholder"
+SALESH = "Sales - Hornby St."
+SALESA = "Sales - Abdn"
+SALESW = "Sale of Warehouse"
+INTERI = "Interest Income"
+PSTCOM = "PST comm"
+COGSOL = "Cost of Goods Sold"
+COGSBI = "COGS - Broken item w/o"
+COGSMI = "COGS - Missing item w/o"
+CASHSO = "Cash Short/Over"
+REPMAI = "Repair & Maintenance"
+SECAL = "Security/Alarm"
+SECALH = "Security/Alarm-Hby"
+STORSU = "Store Supplis"
+TELE = "Telephone"
+TELEW = "Telephone-Ware"
+WAGESG = "Wages-Gal"
+WAGESA = "Wages-Aberdeen"
+ACC = "Accounting"
+BANKCH = "Bank Charges"
+PROPT = "Property Tax"
+LEGAL = "Legal"
+OFFICE = "Office"
+STRATA = "Strata Fee"
+
+GENERICS = [
+    CCAOUT, TDBIZ, USCHEQ, USEXCH, ACCREC, GSTINC, PREPAY,
+    ACCPAY, ACCPAYC, USACCP, CPPPAY, EIPAY, PTPAY, GSTPAY,
+    PSTPAY, CORTPAY, DTSHR, SALESH, SALESA, SALESW, INTERI,
+    PSTCOM, COGSOL, CASHSO, REPMAI, SECAL, SECALH, STORSU,
+    TELE, TELEW, WAGESG, WAGESA, ACC, BANKCH, PROPT, LEGAL,
+    OFFICE, STRATA
+]
+
+generics_adapted = []
+for genera in GENERICS:
+    if "{pos}" in genera:
+        for pos in POSITIONS:
+            generics_adapted.append(genera.format(pos=pos))
+    elif "{loc}" in genera:
+        for loc in LOCATIONS:
+            generics_adapted.append(genera.format(loc=loc))
+    else:
+        generics_adapted.append(genera)
+
+GENERICS = generics_adapted
 
 
 # =============================================================================
@@ -165,26 +243,59 @@ class Transaction:
     date: str
     identifier: str
     amt: Decimal
+    tag: str
     ambiguous: bool = False
     desc: str = ""
 
-    def __str__(self):
-        return f"{self.date}||{self.identifier}||{self.amt}||{self.desc}"
-    
-    def __eq__(self, other):
+    def __str__(self) -> str:
+        d, i, a = self.date, self.identifier, self.amt
+        t, a, desc = self.tag, self.ambiguous, self.desc
+        return f"{d}||{i}||{a}||{t}||{a}||{desc}"
+
+    def __eq__(self, other) -> bool:
         return self.date == other.date and self.identifier == other.identifier
     
-    def __hash__(self):
+    def __neg__(self) -> "Transaction":
+        return Transaction(
+            self.date, self.identifier, -self.amt, self.ambiguous, self.desc
+        )
+    
+    def __mul__(self, other: float) -> "Transaction":
+        return Transaction(
+            self.date, self.identifier, self.amt * other,
+            self.ambiguous, self.desc
+        )
+    
+    def __rmul__(self, other: float) -> "Transaction":
+        return self * other
+    
+    def __hash__(self) -> int:
         return hash((self.date, self.identifier))
     
-    def to_datetime(self):
+    @property
+    def debit(self) -> Decimal:
+        """
+        Return the debit amount.
+        """
+
+        return self.amt if self.amt > 0 else 0
+    
+    @property
+    def credit(self) -> Decimal:
+        """
+        Return the credit amount.
+        """
+
+        return -self.amt if self.amt < 0 else 0
+    
+    def to_datetime(self) -> datetime:
         """
         Convert the date to a datetime object.
         """
 
         return datetime.strptime(self.date, "%m/%d/%y")
     
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         """
         Convert the transaction to a JSON serializable object.
         """
@@ -193,6 +304,7 @@ class Transaction:
             "date": self.date,
             "identifier": self.identifier,
             "amt": str(self.amt),
+            "tag": self.tag,
             "ambiguous": self.ambiguous,
             "desc": self.desc
         }
