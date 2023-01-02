@@ -107,7 +107,8 @@ class GLProcessor:
 
         header = CFLOAT.format(loc=location)
         self.transactions[header].append(
-            Transaction(dt, iden, amt, "GL", amb, desc))
+            Transaction(dt, iden, amt, "GL", amb, desc)
+        )
 
         self.line += 2
 
@@ -161,7 +162,8 @@ class GLProcessor:
             raise ValueError(f"Line {l} of page {p} is not recognized.")
 
         self.transactions[INVENT].append(
-            Transaction(dt, iden, amt, tag, amb, desc))
+            Transaction(dt, iden, amt, tag, amb, desc)
+        )
 
         self.line += skip
 
@@ -215,7 +217,8 @@ class GLProcessor:
             raise ValueError(f"Line {l} of page {p} is not recognized.")
 
         self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc))
+            Transaction(dt, iden, amt, tag, amb, desc)
+        )
 
         self.line += skip
 
@@ -263,7 +266,8 @@ class GLProcessor:
             raise ValueError(f"Line {l} of page {p} has an unknown tag.")
 
         self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc))
+            Transaction(dt, iden, amt, tag, amb, desc)
+        )
 
         self.line += 2
 
@@ -369,7 +373,8 @@ class GLProcessor:
                     break
             else:
                 raise ValueError(
-                    f"Could not disambiguate {header} for {month}.")
+                    f"Could not disambiguate {header} for {month}."
+                )
 
     def line_loop(self) -> None:
         """

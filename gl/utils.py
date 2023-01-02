@@ -1,4 +1,3 @@
-
 import re
 from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
@@ -17,7 +16,7 @@ MONTHS = {
     "September": 9,
     "October": 10,
     "November": 11,
-    "December": 12
+    "December": 12,
 }
 
 MONTH_INDICES = {v: k for k, v in MONTHS.items()}
@@ -37,7 +36,8 @@ CREDIT_INDEX = 74
 # =============================================================================
 # Basic utility functions
 
-def location(line: str, uppercase: bool=False) -> Optional[str]:
+
+def location(line: str, uppercase: bool = False) -> Optional[str]:
     """
     Is the line a location line?
     If so, return the location.
@@ -49,7 +49,7 @@ def location(line: str, uppercase: bool=False) -> Optional[str]:
 
         if loc in line:
             return loc
-    
+
     return None
 
 
@@ -62,7 +62,7 @@ def extract_month(line: str) -> Optional[str]:
     for month in MONTHS:
         if month in line:
             return month
-    
+
     return None
 
 
@@ -80,10 +80,10 @@ def extract_balances(line: str) -> Tuple[Decimal]:
     Index 0 is debits, index 1 is credits.
     """
 
-    line = line.replace(',', '')
+    line = line.replace(",", "")
     return (
         Decimal(re.findall(r"\d+\.\d\d", line)[1]),
-        Decimal(re.findall(r"\d+\.\d\d", line)[2])
+        Decimal(re.findall(r"\d+\.\d\d", line)[2]),
     )
 
 
@@ -96,7 +96,7 @@ def totfor(line: str) -> Optional[str]:
     for month in MONTHS:
         if month in line:
             return month
-    
+
     return None
 
 
@@ -106,10 +106,10 @@ def extract_totals(line: str) -> Tuple[Decimal]:
     Index 0 is debits, index 1 is credits.
     """
 
-    line = line.replace(',', '')
+    line = line.replace(",", "")
     return (
         Decimal(re.findall(r"\d+\.\d\d", line)[0]),
-        Decimal(re.findall(r"\d+\.\d\d", line)[1])
+        Decimal(re.findall(r"\d+\.\d\d", line)[1]),
     )
 
 
@@ -129,11 +129,11 @@ def extract_tag(line: str) -> Optional[str]:
     for tag in TAGS:
         if tag in line[TAG_INDEX:]:
             return tag
-    
+
     return None
 
 
-def extract_amt(line: str, mul: Optional[int]=None) -> Tuple[Decimal, bool]:
+def extract_amt(line: str, mul: Optional[int] = None) -> Tuple[Decimal, bool]:
     """
     Extract the amount from a line.
 
@@ -150,7 +150,7 @@ def extract_amt(line: str, mul: Optional[int]=None) -> Tuple[Decimal, bool]:
 
     assert mul in [-1, 1]
 
-    cand = line.split()[-1].replace(',', '')
+    cand = line.split()[-1].replace(",", "")
     if len(line) > CREDIT_INDEX:
         return Decimal(re.findall(r"\d+\.\d\d", cand)[0]) * mul, True
     elif re.fullmatch(r"\d+\.\d\d", cand):
@@ -216,12 +216,46 @@ STRATA = "Strata Fee"
 UTIL = "Utilities"
 
 GENERICS = [
-    CCAOUT, TDBIZ, USCHEQ, USEXCH, ACCREC, GSTINC, PREPAY,
-    ACCPAY, ACCPAYC, USACCP, CPPPAY, EIPAY, PTPAY, GSTPAY,
-    PSTPAY, CORTPAY, DTSHR, SALESH, SALESA, SALESW, INTERI,
-    PSTCOM, COGSOL, CASHSO, REPMAI, SECAL, SECALH, STORSU,
-    TELE, TELEH, TELEW, WAGESG, WAGESA, ACC, BANKCH, PROPT,
-    LEGAL, OFFICE, STRATA, UTIL
+    CCAOUT,
+    TDBIZ,
+    USCHEQ,
+    USEXCH,
+    ACCREC,
+    GSTINC,
+    PREPAY,
+    ACCPAY,
+    ACCPAYC,
+    USACCP,
+    CPPPAY,
+    EIPAY,
+    PTPAY,
+    GSTPAY,
+    PSTPAY,
+    CORTPAY,
+    DTSHR,
+    SALESH,
+    SALESA,
+    SALESW,
+    INTERI,
+    PSTCOM,
+    COGSOL,
+    CASHSO,
+    REPMAI,
+    SECAL,
+    SECALH,
+    STORSU,
+    TELE,
+    TELEH,
+    TELEW,
+    WAGESG,
+    WAGESA,
+    ACC,
+    BANKCH,
+    PROPT,
+    LEGAL,
+    OFFICE,
+    STRATA,
+    UTIL,
 ]
 
 generics_adapted = []
@@ -241,6 +275,7 @@ GENERICS = generics_adapted
 # =============================================================================
 # Transaction class, for storing information in a consistent manner
 
+
 @dataclass
 class Transaction:
     date: str
@@ -257,25 +292,33 @@ class Transaction:
 
     def __eq__(self, other) -> bool:
         return self.date == other.date and self.identifier == other.identifier
-    
+
     def __neg__(self) -> "Transaction":
         return Transaction(
-            self.date, self.identifier, -self.amt,
-            self.tag, self.ambiguous, self.desc
+            self.date,
+            self.identifier,
+            -self.amt,
+            self.tag,
+            self.ambiguous,
+            self.desc,
         )
-    
+
     def __mul__(self, other: float) -> "Transaction":
         return Transaction(
-            self.date, self.identifier, self.amt * other,
-            self.tag, self.ambiguous, self.desc
+            self.date,
+            self.identifier,
+            self.amt * other,
+            self.tag,
+            self.ambiguous,
+            self.desc,
         )
-    
+
     def __rmul__(self, other: float) -> "Transaction":
         return self * other
-    
+
     def __hash__(self) -> int:
         return hash((self.date, self.identifier))
-    
+
     @property
     def debit(self) -> Decimal:
         """
@@ -283,7 +326,7 @@ class Transaction:
         """
 
         return self.amt if self.amt > 0 else 0
-    
+
     @property
     def credit(self) -> Decimal:
         """
@@ -291,14 +334,14 @@ class Transaction:
         """
 
         return -self.amt if self.amt < 0 else 0
-    
+
     def to_datetime(self) -> datetime:
         """
         Convert the date to a datetime object.
         """
 
         return datetime.strptime(self.date, "%m/%d/%y")
-    
+
     def to_json(self) -> Dict[str, Any]:
         """
         Convert the transaction to a JSON serializable object.
@@ -310,9 +353,9 @@ class Transaction:
             "amt": str(self.amt),
             "tag": self.tag,
             "ambiguous": self.ambiguous,
-            "desc": self.desc
+            "desc": self.desc,
         }
-    
+
     def to_excel_json(self) -> Dict[str, Any]:
         """
         Convert the transaction to a JSON serializable object,
@@ -333,7 +376,9 @@ class Transaction:
 
 if __name__ == "__main__":
     credit = "01/22/22AP0642100006CellJan22phone bills          AP                409.23"
-    debit = "01/15/22AP0640700001Void ck#11256                 AP           800.00"
+    debit = (
+        "01/15/22AP0640700001Void ck#11256                 AP           800.00"
+    )
     ambiguous = "02/27/22APR22-06Record Abdn landlord Fairchild security deposit paGL16,849.58"
     large = "08/26/22OCT22-04Record cash deposit after sell of WarehouseGL  1,456,501.91"
     not_amb = "02/27/22APR22-07Record Hornby landlord 815 Hornby security depGL7,342.66"
