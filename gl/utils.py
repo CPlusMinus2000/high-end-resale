@@ -365,7 +365,8 @@ class Transaction:
         return {
             "date": self.date,
             "identifier": self.identifier,
-            "amt": str(self.amt),
+            "debit": '' if self.debit == 0 else str(self.debit),
+            "credit": '' if self.credit == 0 else str(self.credit),
             "tag": self.tag,
             "desc": self.desc,
         }
