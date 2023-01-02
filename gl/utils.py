@@ -25,6 +25,7 @@ LOCATIONS = ["Ware", "Hby", "Abdn"]
 POSITIONS = ["Staff", "Employer"]
 TAGS = ["AP", "AR", "GL", "PS", "PR"]
 TAG_INDEX = 50
+ALL = "All"
 
 BR1 = "1BRKIN"
 BR2 = "2BRKIN"
@@ -202,6 +203,7 @@ SECAL = "Security/Alarm"
 SECALH = "Security/Alarm-Hby"
 STORSU = "Store Supplis"
 TELE = "Telephone"
+TELEH = "Telephone-Hby"
 TELEW = "Telephone-Ware"
 WAGESG = "Wages-Gal"
 WAGESA = "Wages-Aberdeen"
@@ -211,14 +213,15 @@ PROPT = "Property Tax"
 LEGAL = "Legal"
 OFFICE = "Office"
 STRATA = "Strata Fee"
+UTIL = "Utilities"
 
 GENERICS = [
     CCAOUT, TDBIZ, USCHEQ, USEXCH, ACCREC, GSTINC, PREPAY,
     ACCPAY, ACCPAYC, USACCP, CPPPAY, EIPAY, PTPAY, GSTPAY,
     PSTPAY, CORTPAY, DTSHR, SALESH, SALESA, SALESW, INTERI,
     PSTCOM, COGSOL, CASHSO, REPMAI, SECAL, SECALH, STORSU,
-    TELE, TELEW, WAGESG, WAGESA, ACC, BANKCH, PROPT, LEGAL,
-    OFFICE, STRATA
+    TELE, TELEH, TELEW, WAGESG, WAGESA, ACC, BANKCH, PROPT,
+    LEGAL, OFFICE, STRATA, UTIL
 ]
 
 generics_adapted = []
@@ -257,13 +260,14 @@ class Transaction:
     
     def __neg__(self) -> "Transaction":
         return Transaction(
-            self.date, self.identifier, -self.amt, self.ambiguous, self.desc
+            self.date, self.identifier, -self.amt,
+            self.tag, self.ambiguous, self.desc
         )
     
     def __mul__(self, other: float) -> "Transaction":
         return Transaction(
             self.date, self.identifier, self.amt * other,
-            self.ambiguous, self.desc
+            self.tag, self.ambiguous, self.desc
         )
     
     def __rmul__(self, other: float) -> "Transaction":
@@ -307,6 +311,20 @@ class Transaction:
             "tag": self.tag,
             "ambiguous": self.ambiguous,
             "desc": self.desc
+        }
+    
+    def to_excel_json(self) -> Dict[str, Any]:
+        """
+        Convert the transaction to a JSON serializable object,
+        but without the ambiguous tag.
+        """
+
+        return {
+            "date": self.date,
+            "identifier": self.identifier,
+            "amt": str(self.amt),
+            "tag": self.tag,
+            "desc": self.desc,
         }
 
 

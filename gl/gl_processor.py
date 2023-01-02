@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 import json
 import itertools
+import pandas as pd
 
 
 class GLProcessor:
@@ -26,7 +27,9 @@ class GLProcessor:
         self.line = 0
         self.headers: Dict[str, Callable[[], None]] = {
             CFLOAT: self.process_cash_float,
-            INVENT: self.process_inventory
+            INVENT: self.process_inventory,
+            COGSBI: lambda: self.process_cogs(COGSBI),
+            COGSMI: lambda: self.process_cogs(COGSMI)
         } | {
             h: lambda h=h: self.process_generic(h)
             for h in GENERICS
@@ -64,7 +67,9 @@ class GLProcessor:
         self.valid: Dict[str, Dict[str, List[bool]]] = {
             h: {} for h in self.headers
         }
-    
+
+        self.totals = tuple()
+
 
     def save(self, filename: Optional[str]=None) -> None:
         """
@@ -175,6 +180,62 @@ class GLProcessor:
         self.line += skip
     
 
+    def process_cogs(self, header: str) -> None:
+        """
+        Process a single COGS entry.
+
+        COGS entries suck because sometimes they're just random items
+        and sometimes they're regular Point of Sale entries.
+        Gotta check for both.
+        """
+
+        p, l = self.page, self.line
+        if not is_entry(self.pagelines[p][l]):
+            raise ValueError(f"Line {l} of page {p} is not an entry.")
+        
+        dt = self.pagelines[p][l][:8]
+        amt, amb = None, None
+        iden, tag = "", ""
+        skip = 2
+
+        # Inventory lines are weird.
+        t = extract_tag(self.pagelines[p][l])
+        if t == "PS":
+            iden = self.pagelines[p][l][8:17]
+            desc = self.pagelines[p][l][17:].split("PS")[0].strip()
+            amt, amb = extract_amt(self.pagelines[p][l])
+            tag = "PS"
+        elif t == "AP":
+            iden = self.pagelines[p][l][8:20]
+            desc = self.pagelines[p][l][20:].split("AP")[0].strip()
+            desc += ', ' + self.pagelines[p][l + 1].strip()
+            amt, amb = extract_amt(self.pagelines[p][l])
+            tag = "AP"
+        elif t == "GL":
+            iden = self.pagelines[p][l][8:17]
+            desc = self.pagelines[p][l][17:].split("GL")[0].strip()
+            amt, amb = extract_amt(self.pagelines[p][l])
+            tag = "GL"
+        elif t is None:
+            iden = self.pagelines[p][l][8:15]
+            tag = location(self.pagelines[p][l], uppercase=True)
+            desc = self.pagelines[p][l][15:].split(tag)[0].strip()
+            g = self.pagelines[p][l].replace(
+                BR2, ' ').replace(BR1, ' ' * len(BR1))
+
+            amt, amb = extract_amt(g)
+            skip = 1
+        else:
+            # Huh?
+            raise ValueError(f"Line {l} of page {p} is not recognized.")
+
+        self.transactions[header].append(
+            Transaction(dt, iden, amt, tag, amb, desc)
+        )
+
+        self.line += skip
+    
+
     def process_generic(self, header) -> None:
         """
         Process a generic entry.
@@ -234,18 +295,32 @@ class GLProcessor:
 
         for header in self.transactions:
             calculations = {month: [0, 0] for month in MONTHS}
+            header_total = [0, 0]
             for transaction in self.transactions[header]:
                 m = MONTH_INDICES[transaction.to_datetime().month]
                 calculations[m][0] += transaction.debit
                 calculations[m][1] += transaction.credit
             
             for month in MONTHS:
+                header_total[0] += self.monthly_totals[header][month][0]
+                header_total[1] += self.monthly_totals[header][month][1]
                 if calculations[month] == self.monthly_totals[header][month]:
                     self.valid[header][month] = True
                 else:
                     self.valid[header][month] = False
+            
+            self.valid[header][ALL] = (
+                self.balance_forward[header] == header_total
+            )
+            
+        # Also check the totals over all headers
+        debs = sum(self.balance_forward[h][0] for h in self.balance_forward)
+        creds = sum(self.balance_forward[h][1] for h in self.balance_forward)
+        print((debs, creds), self.totals)
+        self.valid[ALL] = (debs, creds) == self.totals
     
 
+    @property
     def all_valid(self) -> bool:
         """
         Checks whether all entries are valid.
@@ -253,8 +328,16 @@ class GLProcessor:
 
         valid = True
         for header in self.valid:
-            for month in self.valid[header]:
-                valid = valid and self.valid[header][month]
+            if header == ALL:
+                continue
+
+            valid = valid and all(self.valid[header][m] for m in MONTHS)
+        
+        valid = valid and all(
+            self.valid[h][ALL] for h in self.valid
+            if h != ALL
+        )
+        valid = valid and self.valid[ALL]
 
         return valid
         
@@ -291,12 +374,11 @@ class GLProcessor:
 
                     deb -= t.debit
                     cred -= t.credit
-            
-            print(deb, cred)
+
             n = len(amb_indices)
             ambs = [self.transactions[header][i] for i in amb_indices]
             perms = list(itertools.product([-1, 1], repeat=n))
-            for perm in tqdm(perms):
+            for perm in perms:  # tqdm(perms):
                 for i, v in enumerate(perm):
                     ambs[i] *= v
                 
@@ -322,14 +404,13 @@ class GLProcessor:
         self.line = 8
         p = self.page
         while self.line < len(self.pagelines[p]):
-            print(self.pagelines[p][self.line])
-            header = next(
-                (
-                    h for h in self.headers
-                    if h in self.pagelines[p][self.line]
-                ), None
-            )
+            x = self.pagelines[p][self.line].split(' ' * 10)[0]
+            if x == "Totals for Report":
+                self.line += 2
+                self.totals = extract_balances(self.pagelines[p][self.line])
+                return
 
+            header = x.split(' ' * 4)[1]
             if header is None:
                 return
 
@@ -372,21 +453,42 @@ class GLProcessor:
 
         self.validate()
         self.save()
-        print(self.all_valid())
-        if not self.all_valid():
+        print(self.all_valid)
+        if not self.all_valid:
             for h in self.transactions:
                 for m in MONTHS:
                     if not self.valid[h][m]:
                         print(f"Disambiguating {h} for {m}")
                         self.disambiguate(h, m)
-                        print(self.valid[h][m])
-                        print()
 
+        print(self.all_valid)
         self.save()
         print("Done.")
+    
+
+    def save_to_excel(self, filename: Optional[str]=None) -> None:
+        """
+        Save the processed GL report to an Excel file.
+        """
+
+        if filename is None:
+            filename = self.filename.replace(".txt", ".xlsx")
+
+        with pd.ExcelWriter(filename) as writer:
+            for header in self.transactions:
+                df = pd.DataFrame(
+                    [
+                        t.to_excel_json()
+                        for t in self.transactions[header]
+                    ]
+                )
+                safe_header = header.replace("/", "-")
+                df.to_excel(writer, sheet_name=safe_header, index=False)
 
 
 if __name__ == "__main__":
     yr = (datetime.now() - timedelta(days=60)).year
     fname = f"GL{yr}.txt"
-    GLProcessor(fname).process()
+    g = GLProcessor(fname)
+    g.process()
+    g.save_to_excel()
