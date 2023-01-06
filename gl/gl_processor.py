@@ -9,7 +9,7 @@ import pandas as pd
 
 
 class GLProcessor:
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, yr: Optional[int]=None):
         self.filename = filename
         with open(filename, "r") as f:
             self.report = f.read()
@@ -29,6 +29,7 @@ class GLProcessor:
             COGSMI: lambda: self.process_cogs(COGSMI),
             DTSHR: self.process_due_to_shareholder,
         } | {h: lambda h=h: self.process_generic(h) for h in GENERICS}
+        self.header_numbers: Dict[str, str] = {}
 
         for key, func in self.headers.copy().items():
             if "{loc}" in key:
@@ -59,12 +60,14 @@ class GLProcessor:
             h: {m: [z, z] for m in MONTHS} for h in self.headers
         }
 
-        self.balance_forward: Dict[str, List[Decimal]] = {}
+        self.balances: Dict[str, List[Decimal]] = {}
+        self.balance_forwards: Dict[str, List[Transaction]] = {}
         self.valid: Dict[str, Dict[str, List[bool]]] = {
             h: {} for h in self.headers
         }
 
         self.totals = tuple()
+        self.yr = yr
 
     def save(self, filename: Optional[str] = None) -> None:
         """
@@ -82,7 +85,7 @@ class GLProcessor:
         results = {
             "Transactions": t,
             "Monthly Totals": self.monthly_totals,
-            "Balance Forward": self.balance_forward,
+            "Balance Forward": self.balances,
             "Valid": self.valid,
         }
 
@@ -136,8 +139,8 @@ class GLProcessor:
         t = extract_tag(self.pagelines[p][l])
         if t == "PS":
             # Only shows up in Inventory, not in Purchases
-            iden = self.pagelines[p][l][8:16]
-            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
+            iden = self.pagelines[p][l][8:PS_INDEX]
+            desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
             tag = "PS"
         elif t == "AP":
@@ -197,8 +200,8 @@ class GLProcessor:
         # Inventory lines are weird.
         tag = extract_tag(self.pagelines[p][l])
         if tag == "PS":
-            iden = self.pagelines[p][l][8:16]
-            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
+            iden = self.pagelines[p][l][8:PS_INDEX]
+            desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
         elif tag == "AP":
             iden = self.pagelines[p][l][8:20]
@@ -305,11 +308,12 @@ class GLProcessor:
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("AR")[0].strip()
         elif extract_tag(self.pagelines[p][l]) == "GL":
-            iden = self.pagelines[p][l][8:16]
-            desc = self.pagelines[p][l][16:].split("GL")[0].strip()
+            ind = PS_INDEX if self.pagelines[p][l][8].isdigit() else 16
+            iden = self.pagelines[p][l][8:ind]
+            desc = self.pagelines[p][l][ind:].split("GL")[0].strip()
         elif extract_tag(self.pagelines[p][l]) == "PS":
-            iden = self.pagelines[p][l][8:16]
-            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
+            iden = self.pagelines[p][l][8:PS_INDEX]
+            desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
         elif extract_tag(self.pagelines[p][l]) == "PR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("PR")[0].strip()
@@ -357,12 +361,12 @@ class GLProcessor:
                     self.valid[header][month] = False
 
             self.valid[header][ALL] = (
-                self.balance_forward[header] == header_total
+                self.balances[header] == header_total
             )
 
         # Also check the totals over all headers
-        debs = sum(self.balance_forward[h][0] for h in self.balance_forward)
-        creds = sum(self.balance_forward[h][1] for h in self.balance_forward)
+        debs = sum(self.balances[h][0] for h in self.balances)
+        creds = sum(self.balances[h][1] for h in self.balances)
         print((debs, creds), self.totals)
         self.valid[ALL] = (debs, creds) == self.totals
 
@@ -460,9 +464,11 @@ class GLProcessor:
                 self.totals = extract_balances(self.pagelines[p][self.line])
                 return
 
-            header = x.split(" " * 4)[1]
+            num, header = x.split(" " * 4)
             if header is None:
                 return
+            elif header not in self.header_numbers:
+                self.header_numbers[header] = num
 
             self.line += 2
             while self.line < len(self.pagelines[p]):
@@ -477,7 +483,28 @@ class GLProcessor:
                 elif balfor(self.pagelines[p][self.line]):
                     self.line += 1
                     deb, cred = extract_balances(self.pagelines[p][self.line])
-                    self.balance_forward[header] = [deb, cred]
+                    op, clos = extract_balance_forwards(
+                        self.pagelines[p][self.line]
+                    )
+
+                    opt = Transaction(
+                        f"01/01/{self.yr % 100}",
+                        "",
+                        op,
+                        "",
+                        desc="Balance Forward"
+                    )
+
+                    clost = Transaction(
+                        f"12/31/{self.yr % 100}",
+                        "",
+                        clos,
+                        "",
+                        desc="Ending Balance"
+                    )
+
+                    self.balances[header] = [deb, cred]
+                    self.balance_forwards[header] = [opt, clost]
                     self.line += 2
                     break
                 else:
@@ -508,7 +535,7 @@ class GLProcessor:
 
         for h in self.transactions:
             print(f"{h}: {len(self.transactions[h])} transactions")
-            print(f"Balance Forward: {self.balance_forward[h]}" + "\n")
+            print(f"Balance Forward: {self.balances[h]}" + "\n")
 
         self.validate()
         self.save()
@@ -531,18 +558,34 @@ class GLProcessor:
         if filename is None:
             filename = self.filename.replace(".txt", ".xlsx")
 
+        header_order = sorted(
+            self.transactions.keys(),
+            key=lambda x: float(self.header_numbers[x])
+        )
+
         with pd.ExcelWriter(filename) as writer:
-            for header in self.transactions:
-                df = pd.DataFrame(
-                    [t.to_excel_json() for t in self.transactions[header]]
-                )
-                safe_header = header.replace("/", "-")
+            for header in header_order:
+                opt, clost = self.balance_forwards[header]
+                trs = [opt] + self.transactions[header] + [clost]
+                df = pd.DataFrame([t.to_excel_json() for t in trs])
+                # safe_header = header.replace("/", "-")
+                safe_header = self.header_numbers[header]
                 df.to_excel(writer, sheet_name=safe_header, index=False)
+            
+            # Combine all transactions into a single sheet
+            full_list = []
+            for header in header_order:
+                num = self.header_numbers[header]
+                for transaction in self.transactions[header]:
+                    full_list.append(transaction.to_excel_json(header=num))
+
+            df = pd.DataFrame(full_list)
+            df.to_excel(writer, sheet_name="Summary", index=False)
 
 
 if __name__ == "__main__":
     yr = (datetime.now() - timedelta(days=60)).year
-    fname = "YES.txt"  # f"GL{yr}.txt"
-    g = GLProcessor(fname)
+    fname = f"GL{yr}.txt"
+    g = GLProcessor(fname, yr)
     g.process()
     g.save_to_excel()

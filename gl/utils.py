@@ -35,6 +35,10 @@ SH2 = "2SHIN"
 # This assumes the line has been stripped first
 CREDIT_INDEX = 74
 
+# What index are the ends of PS (Point of Sale) IDs located at?
+# Sometimes it's 16, sometimes it's 17. Shove it in a constant.
+PS_INDEX = 17
+
 # =============================================================================
 # Basic utility functions
 
@@ -79,7 +83,7 @@ def balfor(line: str) -> bool:
 def extract_balances(line: str) -> Tuple[Decimal]:
     """
     Extract the balances from a balance forward line.
-    Index 0 is debits, index 1 is credits.
+    Index 1 is debits, index 2 is credits.
     """
 
     line = line.replace(",", "")
@@ -87,6 +91,36 @@ def extract_balances(line: str) -> Tuple[Decimal]:
         Decimal(re.findall(r"\d+\.\d\d", line)[1]),
         Decimal(re.findall(r"\d+\.\d\d", line)[2]),
     )
+
+
+def extract_balance_forwards(line: str) -> Tuple[Decimal]:
+    """
+    Extract the opening and closing balances from a balance forward line.
+    If we take all the numbers out of the line (for example using regex),
+    index 0 is the opening balance and index 4 is the closing balance.
+    However, there's a slight complication: the number can be positive or
+    negative, and the sign can only be determined by examining the characters
+    immediately after the amount. "CR" is credit (negative) and "DR" is debit
+    (positive).
+
+    There's probably a way to identify the DR/CR, but I'm just
+    going to go with first- and last-based indexing. Easy.
+    """
+
+    muls = {"DR": 1, "CR": -1}
+
+    line = line.replace(',', '')
+    amts = re.findall(r"\d+\.\d\d", line)
+    drcr = re.findall("[CD]R", line)
+    opening = Decimal(amts[0])
+    if opening != 0:
+        opening *= muls[drcr[0]]
+    
+    closing = Decimal(amts[4])
+    if closing != 0:
+        closing *= muls[drcr[-1]]
+
+    return opening, closing
 
 
 def totfor(line: str) -> Optional[str]:
@@ -248,6 +282,7 @@ UTILA = "Utilities-Abdn"
 WAGES = "Wages"
 WAGESG = "Wages-Gal"
 WAGESA = "Wages-Abdn"
+WAGESAL = "Wages-Aberdeen"
 WAGESH = "Wages-HBY"
 
 GENERICS = [
@@ -309,6 +344,7 @@ GENERICS = [
     TELEW,
     WAGES,
     WAGESA,
+    WAGESAL,
     WAGESG,
     WAGESH,
     ACC,
@@ -356,7 +392,7 @@ class Transaction:
         t, a, desc = self.tag, self.ambiguous, self.desc
         return f"{d}||{i}||{a}||{t}||{a}||{desc}"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "Transaction") -> bool:
         return self.date == other.date and self.identifier == other.identifier
 
     def __neg__(self) -> "Transaction":
@@ -408,7 +444,7 @@ class Transaction:
 
         return datetime.strptime(self.date, "%m/%d/%y")
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, str]:
         """
         Convert the transaction to a JSON serializable object.
         """
@@ -422,17 +458,21 @@ class Transaction:
             "desc": self.desc,
         }
 
-    def to_excel_json(self) -> Dict[str, Any]:
+    def to_excel_json(self, header: Optional[str]=None) -> Dict[str, Any]:
         """
         Convert the transaction to a JSON serializable object,
         but without the ambiguous tag.
+
+        If header is given, it will be used as the first key.
         """
 
-        return {
+        d = {} if header is None else { "account": header }
+
+        return d | {
             "date": self.date,
             "identifier": self.identifier,
-            "debit": "" if self.debit == 0 else str(self.debit),
-            "credit": "" if self.credit == 0 else str(self.credit),
+            "debit": "" if self.credit > 0 else float(self.debit),
+            "credit": "" if self.credit == 0 else float(self.credit),
             "tag": self.tag,
             "desc": self.desc,
         }

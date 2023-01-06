@@ -1,6 +1,5 @@
 xlsxwriter
 xlrd
-openpyxl
 numpy
 pandas
 pytesseract
@@ -13,3 +12,4 @@ flake8
 black
 telegram-send
 pyperclip
+tqdm
