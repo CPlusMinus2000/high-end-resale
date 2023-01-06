@@ -134,10 +134,21 @@ def locate_and_click(
     time.sleep(wait)
 
 
-def enter_maintenance() -> None:
+def enter_maintenance(mode: str='i') -> bool:
     """
     Use locate_and_click to enter the stock maintenance screen.
+
+    Three modes:
+    'i' - Inventory
+    'b' - Barcode
+    's' - Stock Database
+    
+    i and b are the same and don't do anything, but s is slightly different,
+    as it lets me check if we're already in the stock menu, and so don't have
+    to start the stock recording process over from the beginning.
     """
+
+    assert mode in ['i', 'b', 's']
 
     steps = [
         p(i) for i in [
@@ -150,7 +161,7 @@ def enter_maintenance() -> None:
         locate_and_click(p("no.png"))
     elif pyautogui.locateOnScreen(p("number.png")) is not None:
         # Already ready to start entering
-        return
+        return True
     elif pyautogui.locateOnScreen(p("stock.png")) is None:
         # Regular, no modifications
         pass
@@ -167,3 +178,5 @@ def enter_maintenance() -> None:
 
     for step in steps:
         locate_and_click(step)
+
+    return False

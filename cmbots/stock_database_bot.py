@@ -20,7 +20,7 @@ REFRESH = False
 # Step 1: Log into Cougar Mountain
 try:
     open_network()
-    enter_maintenance()
+    res = enter_maintenance(mode='s')
 except ImageNotFoundError:
     pyautogui.alert(
         "Please make sure the RDP window is open and try again."
@@ -46,8 +46,9 @@ entries = []
 
 # Step 2: Enter the find menu
 try:
-    locate_and_click(p("find.png"))
-    locate_and_click(p("select2.png"))
+    if not res or pyautogui.locateOnScreen(p("number.png")) is not None:
+        locate_and_click(p("find.png"))
+        locate_and_click(p("select2.png"))
 
     prev = ""
     while True:
