@@ -28,6 +28,8 @@ ALL = "All"
 
 BR1 = "1BRKIN"
 BR2 = "2BRKIN"
+SH1 = "1SHIN"
+SH2 = "2SHIN"
 
 # How far into a line the amount will start at for credits
 # This assumes the line has been stripped first
@@ -171,12 +173,17 @@ def extract_amt(line: str, mul: Optional[int] = None) -> Tuple[Decimal, bool]:
 # Headers
 
 CFLOAT = "Cash Float-{loc}"
+CCAIN = "Cash Chequing Account-In"
 CCAOUT = "Cash chequing account-Out"
 TDBIZ = "TD Business Investor Account"
+CCSA = "Coastal Capital Saving Account"
+CCM = "Coastal Capital Membership"
 USCHEQ = "US $ Chequing Account"
 USEXCH = "US $ Account Exchange"
+ARCLR = "AR Clearing"
 ACCREC = "Accounts Receivalbe"
 GSTINC = "GST Input Credit"
+PURCH = "Purchases"
 INVENT = "Inventory"
 PREPAY = "Prepaid"
 ACCPAY = "Accounts Payable"
@@ -194,32 +201,64 @@ SALESA = "Sales - Abdn"
 SALESW = "Sale of Warehouse"
 INTERI = "Interest Income"
 PSTCOM = "PST comm"
+ACC = "Accounting"
+ADVP = "Advertising & Promotion"
+APPR = "Appraisal"
+BANKCH = "Bank Charges"
+BUTRP = "Business Travel/Parking"
 COGSOL = "Cost of Goods Sold"
 COGSBI = "COGS - Broken item w/o"
 COGSMI = "COGS - Missing item w/o"
+COGSA = "COGS - Abdn"
+COGSBC = "COGS - Boxes & Chains"
+COSTMI = "Cost of Misc items"
 CASHSO = "Cash Short/Over"
-REPMAI = "Repair & Maintenance"
-SECAL = "Security/Alarm"
-SECALH = "Security/Alarm-Hby"
-STORSU = "Store Supplis"
-TELE = "Telephone"
-TELEH = "Telephone-Hby"
-TELEW = "Telephone-Ware"
-WAGESG = "Wages-Gal"
-WAGESA = "Wages-Aberdeen"
-ACC = "Accounting"
-BANKCH = "Bank Charges"
-PROPT = "Property Tax"
+CASHOSA = "Cash Over/Short-Abdn"
+CASHOSH = "Cash Over/Short-HBY"
+CCCOMA = "Credit Card Commissions-Abdn"
+CCCOMH = "Credit Card Commissions-Hby"
+COMHAD = "Computer Hardware"
+DUESF = "Dues & Fees"
+ENTERT = "Entertainment"
+FURNE = "Furniture & Equipment"
+GOODW = "Goodwill"
+INSUR = "Insurance"
 LEGAL = "Legal"
 OFFICE = "Office"
+POLIRE = "Polishing & Repair"
+PROPT = "Property Tax"
+RENTA = "Rent-Abdn"
+RENTH = "Rent-Hby"
+REPMAI = "Repair & Maintenance"
+SABOCA = "Sales Boxes & Chains - Abdn"
+SABOCH = "Sales Boxes & Chains - HBY"
+SMITEM = "Sales-Misc. Items"
+SALESD = "Sales Discount"
+SECAL = "Security/Alarm"
+SECALH = "Security/Alarm-Hby"
+SPECO = "Special Order"
+STORSU = "Store Supplis"
 STRATA = "Strata Fee"
+TELE = "Telephone"
+TELEA = "Telephone-Abdn"
+TELEH = "Telephone-Hby"
+TELEW = "Telephone-Ware"
 UTIL = "Utilities"
+UTILA = "Utilities-Abdn"
+WAGES = "Wages"
+WAGESG = "Wages-Gal"
+WAGESA = "Wages-Abdn"
+WAGESH = "Wages-HBY"
 
 GENERICS = [
+    CCAIN,
     CCAOUT,
     TDBIZ,
+    CCSA,
+    CCM,
     USCHEQ,
     USEXCH,
+    ARCLR,
     ACCREC,
     GSTINC,
     PREPAY,
@@ -232,30 +271,57 @@ GENERICS = [
     GSTPAY,
     PSTPAY,
     CORTPAY,
-    DTSHR,
     SALESH,
     SALESA,
     SALESW,
     INTERI,
     PSTCOM,
     COGSOL,
+    COGSA,
+    COGSBC,
+    COSTMI,
     CASHSO,
+    CASHOSA,
+    CASHOSH,
+    CCCOMA,
+    CCCOMH,
+    COMHAD,
+    DUESF,
+    ENTERT,
+    FURNE,
+    GOODW,
+    INSUR,
+    POLIRE,
+    RENTA,
+    RENTH,
     REPMAI,
+    SABOCA,
+    SABOCH,
+    SMITEM,
+    SALESD,
     SECAL,
     SECALH,
+    SPECO,
     STORSU,
     TELE,
+    TELEA,
     TELEH,
     TELEW,
-    WAGESG,
+    WAGES,
     WAGESA,
+    WAGESG,
+    WAGESH,
     ACC,
+    ADVP,
+    APPR,
     BANKCH,
+    BUTRP,
     PROPT,
     LEGAL,
     OFFICE,
     STRATA,
     UTIL,
+    UTILA,
 ]
 
 generics_adapted = []
@@ -365,8 +431,8 @@ class Transaction:
         return {
             "date": self.date,
             "identifier": self.identifier,
-            "debit": '' if self.debit == 0 else str(self.debit),
-            "credit": '' if self.credit == 0 else str(self.credit),
+            "debit": "" if self.debit == 0 else str(self.debit),
+            "credit": "" if self.credit == 0 else str(self.credit),
             "tag": self.tag,
             "desc": self.desc,
         }

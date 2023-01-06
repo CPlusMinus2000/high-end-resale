@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from utils import *
 from typing import Dict, List, Callable
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 import json
 import itertools
@@ -23,9 +23,11 @@ class GLProcessor:
         self.line = 0
         self.headers: Dict[str, Callable[[], None]] = {
             CFLOAT: self.process_cash_float,
-            INVENT: self.process_inventory,
+            PURCH: lambda: self.process_inventory_like(PURCH),
+            INVENT: lambda: self.process_inventory_like(INVENT),
             COGSBI: lambda: self.process_cogs(COGSBI),
             COGSMI: lambda: self.process_cogs(COGSMI),
+            DTSHR: self.process_due_to_shareholder,
         } | {h: lambda h=h: self.process_generic(h) for h in GENERICS}
 
         for key, func in self.headers.copy().items():
@@ -112,9 +114,9 @@ class GLProcessor:
 
         self.line += 2
 
-    def process_inventory(self) -> None:
+    def process_inventory_like(self, header: str) -> None:
         """
-        Process a single inventory entry.
+        Process a single inventory-like entry.
 
         Inventory entries suck because sometimes they're just random items
         and sometimes they're regular Point of Sale entries.
@@ -133,8 +135,9 @@ class GLProcessor:
         # Inventory lines are weird.
         t = extract_tag(self.pagelines[p][l])
         if t == "PS":
-            iden = self.pagelines[p][l][8:17]
-            desc = self.pagelines[p][l][17:].split("PS")[0].strip()
+            # Only shows up in Inventory, not in Purchases
+            iden = self.pagelines[p][l][8:16]
+            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
             tag = "PS"
         elif t == "AP":
@@ -144,11 +147,17 @@ class GLProcessor:
             amt, amb = extract_amt(self.pagelines[p][l])
             tag = "AP"
         elif t == "GL":
-            iden = self.pagelines[p][l][8:17]
-            desc = self.pagelines[p][l][17:].split("GL")[0].strip()
+            # Only shows up in Purchases, not in Inventory
+            iden = self.pagelines[p][l][8:15]
+            desc = self.pagelines[p][l][15:].split("GL")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
             tag = "GL"
         elif t is None:
+            if re.search(r"TC: \dCNIN", self.pagelines[p][l]):
+                # This is a CNIN entry, and can be ignored.
+                self.line += 1
+                return
+
             iden = self.pagelines[p][l][8:15]
             tag = location(self.pagelines[p][l], uppercase=True)
             desc = self.pagelines[p][l][15:].split(tag)[0].strip()
@@ -161,7 +170,7 @@ class GLProcessor:
             # Huh?
             raise ValueError(f"Line {l} of page {p} is not recognized.")
 
-        self.transactions[INVENT].append(
+        self.transactions[header].append(
             Transaction(dt, iden, amt, tag, amb, desc)
         )
 
@@ -182,28 +191,25 @@ class GLProcessor:
 
         dt = self.pagelines[p][l][:8]
         amt, amb = None, None
-        iden, tag = "", ""
+        iden = ""
         skip = 2
 
         # Inventory lines are weird.
-        t = extract_tag(self.pagelines[p][l])
-        if t == "PS":
-            iden = self.pagelines[p][l][8:17]
-            desc = self.pagelines[p][l][17:].split("PS")[0].strip()
+        tag = extract_tag(self.pagelines[p][l])
+        if tag == "PS":
+            iden = self.pagelines[p][l][8:16]
+            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
-            tag = "PS"
-        elif t == "AP":
+        elif tag == "AP":
             iden = self.pagelines[p][l][8:20]
             desc = self.pagelines[p][l][20:].split("AP")[0].strip()
             desc += ", " + self.pagelines[p][l + 1].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
-            tag = "AP"
-        elif t == "GL":
+        elif tag == "GL":
             iden = self.pagelines[p][l][8:17]
             desc = self.pagelines[p][l][17:].split("GL")[0].strip()
             amt, amb = extract_amt(self.pagelines[p][l])
-            tag = "GL"
-        elif t is None:
+        elif tag is None:
             iden = self.pagelines[p][l][8:15]
             tag = location(self.pagelines[p][l], uppercase=True)
             desc = self.pagelines[p][l][15:].split(tag)[0].strip()
@@ -222,6 +228,49 @@ class GLProcessor:
 
         self.line += skip
 
+    def process_due_to_shareholder(self) -> None:
+        p, l = self.page, self.line
+        if not is_entry(self.pagelines[p][l]):
+            raise ValueError(f"Line {l} of page {p} is not an entry.")
+
+        dt = self.pagelines[p][l][:8]
+        amt, amb = None, None
+        iden, tag = "", extract_tag(self.pagelines[p][l])
+        skip = 2
+        if l + 1 < len(self.pagelines[p]) and is_entry(
+            self.pagelines[p][l + 1]
+        ):
+
+            skip = 1
+
+        tag_dict = {
+            "GL": 16,
+            "AP": 20,
+        }
+
+        if tag is not None:
+            ind = tag_dict[tag]
+            iden = self.pagelines[p][l][8:ind]
+            desc = self.pagelines[p][l][ind:].split(tag)[0].strip()
+            amt, amb = extract_amt(self.pagelines[p][l])
+            if skip == 2:
+                desc += ", " + self.pagelines[p][l + 1].strip()
+        else:
+            iden = self.pagelines[p][l][8:15]
+            tag = location(self.pagelines[p][l], uppercase=True)
+            desc = self.pagelines[p][l][15:].split(tag)[0].strip()
+            g = self.pagelines[p][l].replace(SH2, " ")
+            g = g.replace(SH1, " " * len(SH1))
+
+            amt, amb = extract_amt(g)
+            skip = 1
+
+        self.transactions[DTSHR].append(
+            Transaction(dt, iden, amt, tag, amb, desc)
+        )
+
+        self.line += skip
+
     def process_generic(self, header) -> None:
         """
         Process a generic entry.
@@ -233,7 +282,14 @@ class GLProcessor:
 
         dt = self.pagelines[p][l][:8]
         amt, amb = extract_amt(self.pagelines[p][l])
-        iden = tag = ""
+        iden = ""
+        tag = extract_tag(self.pagelines[p][l])
+        skip = 2
+        if l + 1 < len(self.pagelines[p]) and is_entry(
+            self.pagelines[p][l + 1]
+        ):
+
+            skip = 1
 
         # Generic lines typically have two letters in them somewhere
         # that give us some information about how the entry is recorded.
@@ -242,25 +298,24 @@ class GLProcessor:
         if extract_tag(self.pagelines[p][l]) == "AP":
             iden = self.pagelines[p][l][8:20]
             desc = self.pagelines[p][l][20:].split("AP")[0].strip()
-            desc += ", " + self.pagelines[p][l + 1].strip()
-            tag = "AP"
+            if skip == 2:
+                desc += ", " + self.pagelines[p][l + 1].strip()
+
         elif extract_tag(self.pagelines[p][l]) == "AR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("AR")[0].strip()
-            tag = "AR"
         elif extract_tag(self.pagelines[p][l]) == "GL":
             iden = self.pagelines[p][l][8:16]
             desc = self.pagelines[p][l][16:].split("GL")[0].strip()
-            tag = "GL"
         elif extract_tag(self.pagelines[p][l]) == "PS":
-            iden = self.pagelines[p][l][8:17]
-            desc = self.pagelines[p][l][17:].split("PS")[0].strip()
-            tag = "PS"
+            iden = self.pagelines[p][l][8:16]
+            desc = self.pagelines[p][l][16:].split("PS")[0].strip()
         elif extract_tag(self.pagelines[p][l]) == "PR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("PR")[0].strip()
-            desc += ", " + self.pagelines[p][l + 1].strip()
-            tag = "PR"
+            if skip == 2:
+                desc += ", " + self.pagelines[p][l + 1].strip()
+
         else:
             print("Line: " + self.pagelines[p][l])
             raise ValueError(f"Line {l} of page {p} has an unknown tag.")
@@ -269,7 +324,7 @@ class GLProcessor:
             Transaction(dt, iden, amt, tag, amb, desc)
         )
 
-        self.line += 2
+        self.line += skip
 
     def validate(self) -> None:
         """
@@ -291,6 +346,13 @@ class GLProcessor:
                 header_total[1] += self.monthly_totals[header][month][1]
                 if calculations[month] == self.monthly_totals[header][month]:
                     self.valid[header][month] = True
+                elif header == INVENT:
+                    t_diff = calculations[month][0] - calculations[month][1]
+                    m_diff = (
+                        self.monthly_totals[header][month][0]
+                        - self.monthly_totals[header][month][1]
+                    )
+                    self.valid[header][month] = t_diff == m_diff
                 else:
                     self.valid[header][month] = False
 
@@ -358,22 +420,30 @@ class GLProcessor:
 
             n = len(amb_indices)
             ambs = [self.transactions[header][i] for i in amb_indices]
-            perms = list(itertools.product([-1, 1], repeat=n))
-            for perm in perms:  # tqdm(perms):
+            perms = itertools.product([-1, 1], repeat=n)
+            for perm in tqdm(perms, total=2**n):
                 for i, v in enumerate(perm):
                     ambs[i] *= v
 
                 tdeb = sum(t.debit for t in ambs)
                 tcred = sum(t.credit for t in ambs)
-                if tdeb == deb and tcred == cred:
+                if (tdeb == deb and tcred == cred) or (
+                    header == INVENT and tdeb - tcred == deb - cred
+                ):
                     self.valid[header][month] = True
                     for j, t in enumerate(ambs):
                         self.transactions[header][amb_indices[j]] = t
 
                     break
             else:
+                tlen = len(self.transactions[header])
+                amts = [abs(float(t.amt)) for t in ambs]
                 raise ValueError(
-                    f"Could not disambiguate {header} for {month}."
+                    f"Could not disambiguate {header} for {month}. "
+                    f"The correct totals are {deb} and {cred}, "
+                    f"but the calculated totals are {tdeb} and {tcred}. "
+                    f"There are {tlen} transactions in total, "
+                    f"and the ambiguous amounts are: {amts}."
                 )
 
     def line_loop(self) -> None:
@@ -413,7 +483,8 @@ class GLProcessor:
                 else:
                     # ???
                     raise ValueError(
-                        f"Line {self.line} of page {self.page} "
+                        f"Line {self.line} of page {self.page}, "
+                        f"{self.pagelines[self.page][self.line]}, "
                         "is not recognized."
                     )
 
@@ -422,9 +493,18 @@ class GLProcessor:
         Process the GL report.
         """
 
-        for p in range(len(self.pagelines)):
+        for p in trange(len(self.pagelines)):
             self.page = p
             self.line_loop()
+
+        # Drop all headers with no transactions
+        self.transactions = {
+            k: v for k, v in self.transactions.items() if len(v) > 0
+        }
+
+        self.valid = {
+            k: v for k, v in self.valid.items() if k in self.transactions
+        }
 
         for h in self.transactions:
             print(f"{h}: {len(self.transactions[h])} transactions")
@@ -432,7 +512,6 @@ class GLProcessor:
 
         self.validate()
         self.save()
-        print(self.all_valid)
         if not self.all_valid:
             for h in self.transactions:
                 for m in MONTHS:
@@ -463,7 +542,7 @@ class GLProcessor:
 
 if __name__ == "__main__":
     yr = (datetime.now() - timedelta(days=60)).year
-    fname = f"GL{yr}.txt"
+    fname = "YES.txt"  # f"GL{yr}.txt"
     g = GLProcessor(fname)
     g.process()
     g.save_to_excel()
