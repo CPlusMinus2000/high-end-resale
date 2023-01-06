@@ -46,7 +46,7 @@ entries = []
 
 # Step 2: Enter the find menu
 try:
-    if not res or pyautogui.locateOnScreen(p("number.png")) is not None:
+    if not res:
         locate_and_click(p("find.png"))
         locate_and_click(p("select2.png"))
 

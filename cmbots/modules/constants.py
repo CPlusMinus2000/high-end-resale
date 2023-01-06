@@ -161,13 +161,16 @@ def enter_maintenance(mode: str='i') -> bool:
         locate_and_click(p("no.png"))
     elif pyautogui.locateOnScreen(p("number.png")) is not None:
         # Already ready to start entering
-        return True
+        return False
     elif pyautogui.locateOnScreen(p("stock.png")) is None:
         # Regular, no modifications
         pass
     elif pyautogui.locateOnScreen(p("in_stock.png")) is None:
         # Menu is not visible. Enter maintenance mode
         steps = steps[2:]
+    elif mode == 's':
+        # Menu is visible and there's already a code present. Start here.
+        return True
     else:
         # Menu is visible, but can't enter numbers. Exit.
         locate_and_click(p("file.png"))
