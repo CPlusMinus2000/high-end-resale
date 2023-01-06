@@ -21,6 +21,7 @@ REFRESH = False
 try:
     open_network()
     res = enter_maintenance(mode='s')
+    time.sleep(1)
 except ImageNotFoundError:
     pyautogui.alert(
         "Please make sure the RDP window is open and try again."
@@ -48,7 +49,7 @@ entries = []
 try:
     if not res or pyautogui.locateOnScreen(p("number.png")) is not None:
         locate_and_click(p("find.png"))
-        locate_and_click(p("select2.png"))
+        locate_and_click(p("select2.png"), wait=1)
 
     prev = ""
     while True:
@@ -68,7 +69,7 @@ try:
             ordered.append(code)
 
         prev = code
-        send_keys("{TAB}^c")
+        send_keys("{TAB}^c", pause=0.1)
         location = pyperclip.paste()
         send_keys("{TAB}")
         time.sleep(1)
