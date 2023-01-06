@@ -23,9 +23,7 @@ try:
     res = enter_maintenance(mode='s')
     time.sleep(1)
 except ImageNotFoundError:
-    pyautogui.alert(
-        "Please make sure the RDP window is open and try again."
-    )
+    pyautogui.alert("Please make sure the RDP window is open and try again.")
     exit()
 
 # Step 1.5: Read the Excel file to see what codes
