@@ -15,6 +15,14 @@ else:
     send_keys = lambda t: pyautogui.write(t, interval=0.05)
 
 
+def send_message(found_len: int, initial: int):
+    message = (
+        f"Found {found_len - initial} new items in the stock database. "
+        f"Total: {found_len} items have been recorded."
+    )
+    telegram_send.send(messages=[message])
+
+
 REFRESH = False
 
 # Step 1: Log into Cougar Mountain
@@ -123,16 +131,9 @@ try:
 
 except ImageNotFoundError as e:
     pyautogui.alert(f"Could not find image {e}!")
-    raise
-
-
-# Step 3: Save the data
-data = pd.concat([data, pd.DataFrame.from_records(entries)])
-data.to_excel("bot_data/stock_database.xlsx", index=False)
-
-# Step 4: Send Mom a Telegram message
-message = (
-    f"Found {len(found) - initial} new items in the stock database. "
-    f"Total: {len(found)}"
-)
-telegram_send.send(messages=[message])
+except Exception as e:
+    pyautogui.alert(f"An error occurred: {e}")
+finally:
+    data = pd.concat([data, pd.DataFrame.from_records(entries)])
+    data.to_excel("bot_data/stock_database.xlsx", index=False)
+    send_message(len(found), initial)
