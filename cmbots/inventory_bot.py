@@ -169,7 +169,15 @@ def enter_stock(entry: Entry, first=False) -> bool:
 
     # Enter the stock number
     if first:
-        locate_and_click(p("number.png"))
+        for _ in range(5):
+            try:
+                locate_and_click(p("number.png"))
+                break
+            except pyautogui.ImageNotFoundException as e:
+                time.sleep(0.5)
+        
+        else:
+            raise e
 
     send_keys(entry.code + "{TAB}")
     tabs = 5

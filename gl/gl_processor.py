@@ -6,6 +6,7 @@ from tqdm import tqdm, trange
 import json
 import itertools
 import pandas as pd
+import argparse
 
 
 class GLProcessor:
@@ -105,14 +106,15 @@ class GLProcessor:
         iden = self.pagelines[p][l][8:16]
         amt, amb = extract_amt(self.pagelines[p][l])
 
-        # For some reason these lines always have "GL" in them,
+        # For some reason these lines always have "GL" or "AP" in them,
         # near the end of the line, so we can use this
         # to determine where the description stops
-        desc = self.pagelines[p][l][16:].split("GL")[0].strip()
+        tag = extract_tag(self.pagelines[p][l])
+        desc = self.pagelines[p][l][16:].split(tag)[0].strip()
 
         header = CFLOAT.format(loc=location)
         self.transactions[header].append(
-            Transaction(dt, iden, amt, "GL", amb, desc)
+            Transaction(dt, iden, amt, tag, amb, desc)
         )
 
         self.line += 2
@@ -312,8 +314,14 @@ class GLProcessor:
             iden = self.pagelines[p][l][8:ind]
             desc = self.pagelines[p][l][ind:].split("GL")[0].strip()
         elif extract_tag(self.pagelines[p][l]) == "PS":
-            iden = self.pagelines[p][l][8:PS_INDEX]
-            desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
+            if OVERSHORT in self.pagelines[p][l]:
+                iden = OVERSHORT
+                n = self.pagelines[p][l].find(OVERSHORT) + len(OVERSHORT)
+                desc = self.pagelines[p][l][n:].split("PS")[0].strip()
+            else:
+                iden = self.pagelines[p][l][8:PS_INDEX]
+                desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
+
         elif extract_tag(self.pagelines[p][l]) == "PR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("PR")[0].strip()
@@ -584,8 +592,17 @@ class GLProcessor:
 
 
 if __name__ == "__main__":
-    yr = (datetime.now() - timedelta(days=60)).year
-    fname = f"GL{yr}.txt"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "filename",
+        type=str,
+        help="The filename of the GL report to process."
+    )
+
+    args = parser.parse_args()
+    fname = args.filename
+    yr = int(re.search(r"\d{4}", fname).group(0))
+
     g = GLProcessor(fname, yr)
     g.process()
     g.save_to_excel()

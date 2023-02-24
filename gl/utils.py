@@ -30,6 +30,7 @@ BR1 = "1BRKIN"
 BR2 = "2BRKIN"
 SH1 = "1SHIN"
 SH2 = "2SHIN"
+OVERSHORT = "OVER/SHORT"
 
 # How far into a line the amount will start at for credits
 # This assumes the line has been stripped first
@@ -37,7 +38,7 @@ CREDIT_INDEX = 74
 
 # What index are the ends of PS (Point of Sale) IDs located at?
 # Sometimes it's 16, sometimes it's 17. Shove it in a constant.
-PS_INDEX = 17
+PS_INDEX = 16
 
 # =============================================================================
 # Basic utility functions
@@ -245,6 +246,8 @@ COGSBI = "COGS - Broken item w/o"
 COGSMI = "COGS - Missing item w/o"
 COGSA = "COGS - Abdn"
 COGSBC = "COGS - Boxes & Chains"
+COGSBCA = "COGS -Boxes & Chains-Abdn"
+COMPNM = "Computer/Network Maintenance"
 COSTMI = "Cost of Misc items"
 CASHSO = "Cash Short/Over"
 CASHOSA = "Cash Over/Short-Abdn"
@@ -257,6 +260,7 @@ ENTERT = "Entertainment"
 FURNE = "Furniture & Equipment"
 GOODW = "Goodwill"
 INSUR = "Insurance"
+INCTAX = "Income Taxes"
 LEGAL = "Legal"
 OFFICE = "Office"
 POLIRE = "Polishing & Repair"
@@ -314,6 +318,8 @@ GENERICS = [
     COGSOL,
     COGSA,
     COGSBC,
+    COGSBCA,
+    COMPNM,
     COSTMI,
     CASHSO,
     CASHOSA,
@@ -325,6 +331,7 @@ GENERICS = [
     ENTERT,
     FURNE,
     GOODW,
+    INCTAX,
     INSUR,
     POLIRE,
     RENTA,
