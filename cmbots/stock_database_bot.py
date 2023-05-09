@@ -15,6 +15,14 @@ else:
     send_keys = lambda t: pyautogui.write(t, interval=0.05)
 
 
+def is_code(tag: str) -> bool:
+    if len(tag.split('-')) != 2:
+        return False
+
+    left, right = tag.split('-')
+    return 1 <= len(left) <= 4 and 2 <= len(right) <= 4
+
+
 def send_message(found_len: int, initial: int):
     message = (
         f"Found {found_len - initial} new items in the stock database. "
@@ -42,7 +50,7 @@ if not REFRESH and os.path.exists("bot_data/stock_database.xlsx"):
     sheets = pd.read_excel("bot_data/stock_database.xlsx", sheet_name=None)
     for sheetname, df in sheets.items():
         df = df.astype(str)
-        found.update(df["code"].values)
+        found.update(zip(df["code"].values, df["location"].values))
 
     data = pd.concat(sheets.values())
 
@@ -55,6 +63,9 @@ entries = []
 try:
     if not res:
         locate_and_click(p("find.png"))
+        if initial > 0:
+            send_keys(ordered[-1][0])
+
         locate_and_click(p("select2.png"), wait=1)
 
     prev = ""
@@ -62,23 +73,30 @@ try:
         counter += 1
         locate_and_click(p("edit.png"))
         locate_and_click(p("save.png"), wait=2)
-        send_keys("^c")
-        code = pyperclip.paste()
-        if ordered and prev > ordered[0] and code <= ordered[0]:
-            # Managed to loop all the way around. Impressive effort. Done!
-            break
-        elif code in found:
-            locate_and_click(p("right.png"))
-            continue
+        for tries in range(5):
+            send_keys("^c")
+            code = pyperclip.paste()
+            if is_code(code):
+                break
         else:
-            found.add(code)
-            ordered.append(code)
-
-        prev = code
+            # sus...
+            code = "CODE-FAIL"
+        
         send_keys("{TAB}^c", pause=0.1)
         location = pyperclip.paste()
         send_keys("{TAB}")
         time.sleep(1)
+        if ordered and prev > ordered[0][0] and code <= ordered[0][0]:
+            # Managed to loop all the way around. Impressive effort. Done!
+            break
+        elif (code, location) in found:
+            locate_and_click(p("right.png"))
+            continue
+        else:
+            found.add((code, location))
+            ordered.append((code, location))
+
+        prev = code
         locate_and_click(p("edit.png"))
         if pyautogui.locateOnScreen(p("grey1.png")) is not None:
             send_keys("^c")
@@ -133,7 +151,9 @@ except ImageNotFoundError as e:
     pyautogui.alert(f"Could not find image {e}!")
 except Exception as e:
     pyautogui.alert(f"An error occurred: {e}")
+    raise
 finally:
-    data = pd.concat([data, pd.DataFrame.from_records(entries)])
-    data.to_excel("bot_data/stock_database.xlsx", index=False)
-    send_message(len(found), initial)
+    if entries:
+        data = pd.concat([data, pd.DataFrame.from_records(entries)])
+        data.to_excel("bot_data/stock_database.xlsx", index=False)
+        send_message(len(found), initial)
