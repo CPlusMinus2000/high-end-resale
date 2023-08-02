@@ -24,7 +24,7 @@ else:
 xls = os.path.exists(c("stock.xls"))
 xlsx = os.path.exists(c("stock.xlsx"))
 
-if not xls or xlsx:
+if not (xls or xlsx):
     pyautogui.alert(
         "Please save the stock spreadsheet in the folder bot_data "
         "with the name stock.xls or stock.xlsx. and try again."
