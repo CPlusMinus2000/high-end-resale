@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# DS_Store
+# unnecessary dotfiles
 .DS_Store
+.vscode/
 
 # Data
 cougar_data/

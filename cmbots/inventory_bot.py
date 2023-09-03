@@ -7,13 +7,13 @@ import pyperclip
 
 from platform import platform
 from modules.constants import p, c, locate_and_click, Entry, open_network, \
-    ImageNotFoundError
+    ImageNotFoundError, enter_maintenance
 from modules.filereader import read_excel
 
 if "Windows" in platform():
     from pywinauto.keyboard import send_keys
 else:
-    send_keys = lambda t: pyautogui.write(t, interval=0.05)
+    def send_keys(t): return pyautogui.write(t, interval=0.05)
 
 
 # So here's how the bot is going to need to work
@@ -24,10 +24,10 @@ else:
 xls = os.path.exists(c("stock.xls"))
 xlsx = os.path.exists(c("stock.xlsx"))
 
-if not (xls or xlsx):
+if not xls and not xlsx:
     pyautogui.alert(
         "Please save the stock spreadsheet in the folder bot_data "
-        "with the name stock.xls or stock.xlsx. and try again."
+        "with the name stock.xls or stock.xlsx, and try again."
     )
     exit()
 
@@ -149,13 +149,7 @@ for entry in entries:
 
 print(entries[0])
 
-# Step 3: Open Cougar Mountain through Remote Desktop and (optionally)
-# locate the right places to click on the screen to insert text and save
-# Alternatively, use human supervision to find the right values
-
-from modules.constants import enter_maintenance
-
-# Step 4: Loop through the entries and insert the data into the system,
+# Step 3: Loop through the entries and insert the data into the system,
 # checking during insertion that the index number does not already exist
 # either by looking for greyed out text or checking the find menu
 
@@ -175,7 +169,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
                 break
             except pyautogui.ImageNotFoundException as e:
                 time.sleep(0.5)
-        
+
         else:
             raise e
 
@@ -273,7 +267,7 @@ except ImageNotFoundError as e:
     pyautogui.alert(f"Could not find {e}!")
     exit()
 
-# Step 5: Send a Telegram message to Mom when the program is done
+# Step 4: Send a Telegram message to Mom when the program is done
 codes = '\n'.join([e.code for e in already_entered])
 message = (
     f"Finished entering {len(entries) - len(already_entered)} entries"
@@ -282,4 +276,4 @@ message = (
 )
 telegram_send.send(messages=[message])
 
-# Step 6: Profit
+# Step 5: Profit
