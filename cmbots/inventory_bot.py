@@ -173,7 +173,8 @@ def enter_stock(entry: Entry, first=False) -> bool:
         else:
             raise e
 
-    send_keys(entry.code + "{TAB}")
+    time.sleep(0.5)
+    send_keys(entry.code + "{TAB}", pause=0.1)
     tabs = 5
     on_hand = pyautogui.locateOnScreen(p("on_hand.png"))
     if on_hand is None:
