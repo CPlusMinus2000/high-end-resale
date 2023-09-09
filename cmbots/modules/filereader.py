@@ -5,7 +5,7 @@ from modules.constants import Entry, ATTRS
 import pandas as pd
 
 
-def read_excel(filename: str, mode: str='i') -> List[Entry]:
+def read_excel(filename: str, mode: str = 'i') -> List[Entry]:
     """
     Reads an Excel document of a very specific format
     (must contain the column headers contained in ATTRS)
@@ -68,7 +68,7 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
         for row in df.itertuples():
             if row[indices["index"]] not in ["nan", "#"]:
                 count = 0
-                mode_check = True # Right now, ABDN is always used
+                mode_check = True  # Right now, ABDN is always used
                 if mode_check or row[qindex] in ['x', 'X']:
                     entry = Entry()
                     for attr, index in indices.items():
@@ -77,8 +77,8 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = row[qindex] if row[qindex].isnumeric() else "1"
                     # entry["quantity"] = q
                     entry["location"] = "ABDN"
-                    if entry["cnor"] != "nan" and entry["cnor"].strip():
-                        entry["cnor"] = consignor
+                    # if entry["cnor"] != "nan" and entry["cnor"].strip():
+                    #     entry["cnor"] = consignor
 
                     entries.append(entry)
                     count += 1
@@ -92,8 +92,8 @@ def read_excel(filename: str, mode: str='i') -> List[Entry]:
                     # q = "1" if row[qindex + 1] == "X" else row[qindex + 1]
                     # entry["quantity"] = q
                     entry["location"] = "HBY"
-                    if entry["cnor"] != "nan" and entry["cnor"].strip():
-                        entry["cnor"] = consignor
+                    # if entry["cnor"] != "nan" and entry["cnor"].strip():
+                    #     entry["cnor"] = consignor
 
                     entries.append(entry)
                     count += 1
