@@ -202,7 +202,7 @@ def enter_stock(entry: Entry, first=False) -> bool:
     send_keys("^v")
     consign_grey = pyautogui.locateOnScreen(p("consignment_grey.png"))
     if entry.cnor.strip() not in ["nan", ''] and consign_grey is not None:
-        send_keys("{TAB}" + entry.cnor)
+        send_keys("{TAB}" + entry.cnor, pause=0.1)
         try:
             locate_and_click(p("serialized.png"))
         except ImageNotFoundError:

@@ -95,13 +95,14 @@ def print_barcode(entry: Entry) -> None:
 
     # Since the printer can only handle two-digit numbers,
     # use some funny logic to print the right number of labels.
-    while entry.quantity > 0:
-        amt_to_print = min(entry.quantity, 99)
+    quant = int(entry.quantity)
+    while quant > 0:
+        amt_to_print = str(min(quant, 99))
         locate_and_click(p("quantity.png"), pos='r', stretch=2)
         send_keys(amt_to_print)
         locate_and_click(p("ok.png"))
         time.sleep(5 + 0.3 * int(amt_to_print))
-        entry.quantity -= amt_to_print
+        quant -= amt_to_print
 
     with open("finished_barcodes.txt", 'a') as f:
         f.write(entry.code + '\n')
