@@ -44,6 +44,14 @@ PS_INDEX = 16
 # Basic utility functions
 
 
+def num_spaces_at_start(line: str) -> int:
+    """
+    How many spaces are at the start of the line?
+    """
+
+    return len(line) - len(line.lstrip())
+
+
 def location(line: str, uppercase: bool = False) -> Optional[str]:
     """
     Is the line a location line?
@@ -152,7 +160,7 @@ def extract_totals(line: str) -> Tuple[Decimal]:
 
 def is_entry(line: str) -> bool:
     """
-    Is the line an entry?
+    Is the line an entry? Check if it starts with a date in MM/DD/YY format.
     """
 
     return re.match(r"^\d{2}/\d{2}/\d{2}", line.strip()) is not None
@@ -247,6 +255,7 @@ COGSMI = "COGS - Missing item w/o"
 COGSA = "COGS - Abdn"
 COGSBC = "COGS - Boxes & Chains"
 COGSBCA = "COGS -Boxes & Chains-Abdn"
+COGSCDF = "COGS - Custom Duties&Fees"
 COMPNM = "Computer/Network Maintenance"
 COSTMI = "Cost of Misc items"
 CASHSO = "Cash Short/Over"
@@ -276,6 +285,7 @@ SECAL = "Security/Alarm"
 SECALH = "Security/Alarm-Hby"
 SPECO = "Special Order"
 STORSU = "Store Supplis"
+STOPUR = "Stock Purchased from Cafferatas"
 STRATA = "Strata Fee"
 TELE = "Telephone"
 TELEA = "Telephone-Abdn"
@@ -319,6 +329,7 @@ GENERICS = [
     COGSA,
     COGSBC,
     COGSBCA,
+    COGSCDF,
     COMPNM,
     COSTMI,
     CASHSO,

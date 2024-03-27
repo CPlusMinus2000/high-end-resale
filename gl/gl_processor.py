@@ -19,6 +19,7 @@ class GLProcessor:
         self.pagelines: List[List[str]] = [
             [l.strip() for l in p.splitlines()] for p in self.pages
         ]
+        self.raw_pagelines = [[l for l in p.splitlines()] for p in self.pages]
 
         self.page = 0
         self.line = 0
@@ -29,6 +30,7 @@ class GLProcessor:
             COGSBI: lambda: self.process_cogs(COGSBI),
             COGSMI: lambda: self.process_cogs(COGSMI),
             DTSHR: self.process_due_to_shareholder,
+            STOPUR: lambda: self.process_inventory_like(STOPUR),
         } | {h: lambda h=h: self.process_generic(h) for h in GENERICS}
         self.header_numbers: Dict[str, str] = {}
 
@@ -100,7 +102,7 @@ class GLProcessor:
 
         p, l = self.page, self.line
         if not is_entry(self.pagelines[p][l]):
-            raise ValueError(f"Line {l} of page {p} is not an entry.")
+            raise ValueError(f"Line {l} of page {p + 1} is not an entry.")
 
         dt = self.pagelines[p][l][:8]
         iden = self.pagelines[p][l][8:16]
@@ -130,7 +132,7 @@ class GLProcessor:
 
         p, l = self.page, self.line
         if not is_entry(self.pagelines[p][l]):
-            raise ValueError(f"Line {l} of page {p} is not an entry.")
+            raise ValueError(f"Line {l} of page {p + 1} is not an entry.")
 
         dt = self.pagelines[p][l][:8]
         amt, amb = None, None
@@ -173,11 +175,16 @@ class GLProcessor:
             skip = 1
         else:
             # Huh?
-            raise ValueError(f"Line {l} of page {p} is not recognized.")
+            raise ValueError(f"Line {l} of page {p + 1} is not recognized.")
 
         self.transactions[header].append(
             Transaction(dt, iden, amt, tag, amb, desc)
         )
+
+        # So apparently, sometimes the desc can just be non-existent?
+        # In this case, the transaction only spans one line, so set skip to 1.
+        if desc == "":
+            skip = 1
 
         self.line += skip
 
@@ -192,7 +199,7 @@ class GLProcessor:
 
         p, l = self.page, self.line
         if not is_entry(self.pagelines[p][l]):
-            raise ValueError(f"Line {l} of page {p} is not an entry.")
+            raise ValueError(f"Line {l} of page {p + 1} is not an entry.")
 
         dt = self.pagelines[p][l][:8]
         amt, amb = None, None
@@ -225,7 +232,7 @@ class GLProcessor:
             skip = 1
         else:
             # Huh?
-            raise ValueError(f"Line {l} of page {p} is not recognized.")
+            raise ValueError(f"Line {l} of page {p + 1} is not recognized.")
 
         self.transactions[header].append(
             Transaction(dt, iden, amt, tag, amb, desc)
@@ -236,7 +243,7 @@ class GLProcessor:
     def process_due_to_shareholder(self) -> None:
         p, l = self.page, self.line
         if not is_entry(self.pagelines[p][l]):
-            raise ValueError(f"Line {l} of page {p} is not an entry.")
+            raise ValueError(f"Line {l} of page {p + 1} is not an entry.")
 
         dt = self.pagelines[p][l][:8]
         amt, amb = None, None
@@ -283,7 +290,7 @@ class GLProcessor:
 
         p, l = self.page, self.line
         if not is_entry(self.pagelines[p][l]):
-            raise ValueError(f"Line {l} of page {p} is not an entry.")
+            raise ValueError(f"Line {l} of page {p + 1} is not an entry.")
 
         dt = self.pagelines[p][l][:8]
         amt, amb = extract_amt(self.pagelines[p][l])
@@ -292,13 +299,12 @@ class GLProcessor:
         skip = 2
         if l + 1 < len(self.pagelines[p]) and is_entry(
             self.pagelines[p][l + 1]
-        ):
-
+        ) and num_spaces_at_start(self.raw_pagelines[p][l + 1]) < 2:
             skip = 1
 
         # Generic lines typically have two letters in them somewhere
         # that give us some information about how the entry is recorded.
-        # These are AP, AR, and GL. We can use this to determine where
+        # These are AP, AR, PS, and GL. We can use this to determine where
         # the description stops, and also other formatting information.
         if extract_tag(self.pagelines[p][l]) == "AP":
             iden = self.pagelines[p][l][8:20]
@@ -328,9 +334,23 @@ class GLProcessor:
             if skip == 2:
                 desc += ", " + self.pagelines[p][l + 1].strip()
 
+        elif "IN" in self.pagelines[p][l].split()[-1]:
+            if re.search(r"TC: \dCNIN", self.pagelines[p][l]):
+                # This is a CNIN entry, and can be ignored.
+                self.line += 1
+                return
+
+            iden = self.pagelines[p][l][8:15]
+            tag = location(self.pagelines[p][l], uppercase=True)
+            desc = self.pagelines[p][l][15:].split(tag)[0].strip()
+            g = self.pagelines[p][l].replace(BR1, " ")
+            g = g.replace(BR2, " " * len(BR2))
+
+            amt, amb = extract_amt(g)
+            skip = 1
         else:
             print("Line: " + self.pagelines[p][l])
-            raise ValueError(f"Line {l} of page {p} has an unknown tag.")
+            raise ValueError(f"Line {l} of page {p + 1} has an unknown tag.")
 
         self.transactions[header].append(
             Transaction(dt, iden, amt, tag, amb, desc)
@@ -426,7 +446,6 @@ class GLProcessor:
 
             for t in self.transactions[header]:
                 if t.to_datetime().month == MONTHS[month] and not t.ambiguous:
-
                     deb -= t.debit
                     cred -= t.credit
 
@@ -434,16 +453,17 @@ class GLProcessor:
             ambs = [self.transactions[header][i] for i in amb_indices]
             perms = itertools.product([-1, 1], repeat=n)
             for perm in tqdm(perms, total=2**n):
+                ambs_copy = ambs.copy()
                 for i, v in enumerate(perm):
-                    ambs[i] *= v
+                    ambs_copy[i] *= v
 
-                tdeb = sum(t.debit for t in ambs)
-                tcred = sum(t.credit for t in ambs)
+                tdeb = sum(t.debit for t in ambs_copy)
+                tcred = sum(t.credit for t in ambs_copy)
                 if (tdeb == deb and tcred == cred) or (
                     header == INVENT and tdeb - tcred == deb - cred
                 ):
                     self.valid[header][month] = True
-                    for j, t in enumerate(ambs):
+                    for j, t in enumerate(ambs_copy):
                         self.transactions[header][amb_indices[j]] = t
 
                     break
@@ -518,8 +538,8 @@ class GLProcessor:
                 else:
                     # ???
                     raise ValueError(
-                        f"Line {self.line} of page {self.page}, "
-                        f"{self.pagelines[self.page][self.line]}, "
+                        f"Line {self.line} of page {self.page + 1}, "
+                        f"{self.pagelines[p][self.line]}, "
                         "is not recognized."
                     )
 
@@ -592,7 +612,7 @@ class GLProcessor:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Process a GL report.")
     parser.add_argument(
         "filename",
         type=str,
@@ -604,5 +624,10 @@ if __name__ == "__main__":
     yr = int(re.search(r"\d{4}", fname).group(0))
 
     g = GLProcessor(fname, yr)
-    g.process()
+    try:
+        g.process()
+    except Exception:
+        print(g.pagelines[g.page][g.line], g.page + 1, g.line)
+        raise
+
     g.save_to_excel()
