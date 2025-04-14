@@ -1,18 +1,37 @@
-from datetime import datetime, timedelta
-from utils import *
-from typing import Dict, List, Callable
+import argparse
+import itertools
+import json
+from pathlib import Path
+from typing import Callable, Dict, List
+
+import pandas as pd
 from tqdm import tqdm, trange
 
-import json
-import itertools
-import pandas as pd
-import argparse
+from utils import *
 
 
 class GLProcessor:
-    def __init__(self, filename: str, yr: Optional[int]=None):
+    filename: Path
+    report: str
+    pages: list[str]
+    pagelines: list[list[str]]
+    raw_pagelines: list[list[str]]
+    page: int
+    line: int
+    headers: dict[str, Callable[[], None]]
+    header_numbers: dict[str, str]
+    transactions: dict[str, list[Transaction]]
+    monthly_totals: dict[str, dict[str, list[Decimal]]]
+ 
+    balances: dict[str, list[Decimal]]
+    balance_forwards: dict[str, list[Transaction]]
+    valid: dict[str, dict[str, list[bool]]]
+    totals: tuple[int]
+    yr: int
+
+    def __init__(self, filename: Path, yr: Optional[int] = None):
         self.filename = filename
-        with open(filename, "r") as f:
+        with open(filename, "r", encoding="latin-1") as f:
             self.report = f.read()
 
         self.pages = [p.strip() for p in self.report.split("\n" * 7)]
@@ -23,7 +42,7 @@ class GLProcessor:
 
         self.page = 0
         self.line = 0
-        self.headers: Dict[str, Callable[[], None]] = {
+        self.headers = {
             CFLOAT: self.process_cash_float,
             PURCH: lambda: self.process_inventory_like(PURCH),
             INVENT: lambda: self.process_inventory_like(INVENT),
@@ -32,7 +51,7 @@ class GLProcessor:
             DTSHR: self.process_due_to_shareholder,
             STOPUR: lambda: self.process_inventory_like(STOPUR),
         } | {h: lambda h=h: self.process_generic(h) for h in GENERICS}
-        self.header_numbers: Dict[str, str] = {}
+        self.header_numbers = {}
 
         for key, func in self.headers.copy().items():
             if "{loc}" in key:
@@ -54,31 +73,27 @@ class GLProcessor:
 
                     self.headers[k] = f
 
-        self.transactions: Dict[str, List[Transaction]] = {
-            h: [] for h in self.headers
-        }
+        self.transactions = {h: [] for h in self.headers}
 
         z = Decimal(0)
-        self.monthly_totals = {
-            h: {m: [z, z] for m in MONTHS} for h in self.headers
-        }
+        self.monthly_totals = {h: {m: [z, z] for m in MONTHS} for h in self.headers}
 
         self.balances: Dict[str, List[Decimal]] = {}
         self.balance_forwards: Dict[str, List[Transaction]] = {}
-        self.valid: Dict[str, Dict[str, List[bool]]] = {
-            h: {} for h in self.headers
-        }
+        self.valid: Dict[str, Dict[str, List[bool]]] = {h: {} for h in self.headers}
 
         self.totals = tuple()
         self.yr = yr
 
-    def save(self, filename: Optional[str] = None) -> None:
+    def save(self, filename: str | None = None) -> None:
         """
         Save the processed GL report to a file.
         """
 
         if not filename:
-            filename = self.filename.replace(".txt", "_processed.json")
+            input_parts = self.filename.parts
+            input_parts = input_parts[:-1] + (input_parts[-1].replace(".txt", ".json"),)
+            filename = Path().joinpath(*input_parts)
 
         t = {
             h: [transaction.to_json() for transaction in self.transactions[h]]
@@ -115,9 +130,7 @@ class GLProcessor:
         desc = self.pagelines[p][l][16:].split(tag)[0].strip()
 
         header = CFLOAT.format(loc=location)
-        self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc)
-        )
+        self.transactions[header].append(Transaction(dt, iden, amt, tag, amb, desc))
 
         self.line += 2
 
@@ -177,9 +190,7 @@ class GLProcessor:
             # Huh?
             raise ValueError(f"Line {l} of page {p + 1} is not recognized.")
 
-        self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc)
-        )
+        self.transactions[header].append(Transaction(dt, iden, amt, tag, amb, desc))
 
         # So apparently, sometimes the desc can just be non-existent?
         # In this case, the transaction only spans one line, so set skip to 1.
@@ -234,9 +245,7 @@ class GLProcessor:
             # Huh?
             raise ValueError(f"Line {l} of page {p + 1} is not recognized.")
 
-        self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc)
-        )
+        self.transactions[header].append(Transaction(dt, iden, amt, tag, amb, desc))
 
         self.line += skip
 
@@ -249,9 +258,7 @@ class GLProcessor:
         amt, amb = None, None
         iden, tag = "", extract_tag(self.pagelines[p][l])
         skip = 2
-        if l + 1 < len(self.pagelines[p]) and is_entry(
-            self.pagelines[p][l + 1]
-        ):
+        if l + 1 < len(self.pagelines[p]) and is_entry(self.pagelines[p][l + 1]):
 
             skip = 1
 
@@ -277,9 +284,7 @@ class GLProcessor:
             amt, amb = extract_amt(g)
             skip = 1
 
-        self.transactions[DTSHR].append(
-            Transaction(dt, iden, amt, tag, amb, desc)
-        )
+        self.transactions[DTSHR].append(Transaction(dt, iden, amt, tag, amb, desc))
 
         self.line += skip
 
@@ -297,29 +302,31 @@ class GLProcessor:
         iden = ""
         tag = extract_tag(self.pagelines[p][l])
         skip = 2
-        if l + 1 < len(self.pagelines[p]) and is_entry(
-            self.pagelines[p][l + 1]
-        ) and num_spaces_at_start(self.raw_pagelines[p][l + 1]) < 2:
+        if (
+            l + 1 < len(self.pagelines[p])
+            and is_entry(self.pagelines[p][l + 1])
+            and num_spaces_at_start(self.raw_pagelines[p][l + 1]) < 2
+        ):
             skip = 1
 
         # Generic lines typically have two letters in them somewhere
         # that give us some information about how the entry is recorded.
         # These are AP, AR, PS, and GL. We can use this to determine where
         # the description stops, and also other formatting information.
-        if extract_tag(self.pagelines[p][l]) == "AP":
+        if tag == "AP":
             iden = self.pagelines[p][l][8:20]
             desc = self.pagelines[p][l][20:].split("AP")[0].strip()
             if skip == 2:
                 desc += ", " + self.pagelines[p][l + 1].strip()
 
-        elif extract_tag(self.pagelines[p][l]) == "AR":
+        elif tag == "AR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("AR")[0].strip()
-        elif extract_tag(self.pagelines[p][l]) == "GL":
+        elif tag == "GL":
             ind = PS_INDEX if self.pagelines[p][l][8].isdigit() else 16
             iden = self.pagelines[p][l][8:ind]
             desc = self.pagelines[p][l][ind:].split("GL")[0].strip()
-        elif extract_tag(self.pagelines[p][l]) == "PS":
+        elif tag == "PS":
             if OVERSHORT in self.pagelines[p][l]:
                 iden = OVERSHORT
                 n = self.pagelines[p][l].find(OVERSHORT) + len(OVERSHORT)
@@ -328,7 +335,7 @@ class GLProcessor:
                 iden = self.pagelines[p][l][8:PS_INDEX]
                 desc = self.pagelines[p][l][PS_INDEX:].split("PS")[0].strip()
 
-        elif extract_tag(self.pagelines[p][l]) == "PR":
+        elif tag == "PR":
             iden = self.pagelines[p][l][8:15]
             desc = self.pagelines[p][l][15:].split("PR")[0].strip()
             if skip == 2:
@@ -346,15 +353,13 @@ class GLProcessor:
             g = self.pagelines[p][l].replace(BR1, " ")
             g = g.replace(BR2, " " * len(BR2))
 
-            amt, amb = extract_amt(g)
+            amt, _ = extract_amt(g)
             skip = 1
         else:
             print("Line: " + self.pagelines[p][l])
             raise ValueError(f"Line {l} of page {p + 1} has an unknown tag.")
 
-        self.transactions[header].append(
-            Transaction(dt, iden, amt, tag, amb, desc)
-        )
+        self.transactions[header].append(Transaction(dt, iden, amt, tag, amb, desc))
 
         self.line += skip
 
@@ -386,11 +391,10 @@ class GLProcessor:
                     )
                     self.valid[header][month] = t_diff == m_diff
                 else:
+                    print(header)
                     self.valid[header][month] = False
 
-            self.valid[header][ALL] = (
-                self.balances[header] == header_total
-            )
+            self.valid[header][ALL] = self.balances[header] == header_total
 
         # Also check the totals over all headers
         debs = sum(self.balances[h][0] for h in self.balances)
@@ -411,9 +415,7 @@ class GLProcessor:
 
             valid = valid and all(self.valid[header][m] for m in MONTHS)
 
-        valid = valid and all(
-            self.valid[h][ALL] for h in self.valid if h != ALL
-        )
+        valid = valid and all(self.valid[h][ALL] for h in self.valid if h != ALL)
         valid = valid and self.valid[ALL]
 
         return valid
@@ -443,6 +445,9 @@ class GLProcessor:
                 for i, v in enumerate(self.transactions[header])
                 if v.to_datetime().month == MONTHS[month] and v.ambiguous
             ]
+
+            if not amb_indices:
+                raise ValueError("Invalid sums but no ambiguous indices??")
 
             for t in self.transactions[header]:
                 if t.to_datetime().month == MONTHS[month] and not t.ambiguous:
@@ -511,24 +516,14 @@ class GLProcessor:
                 elif balfor(self.pagelines[p][self.line]):
                     self.line += 1
                     deb, cred = extract_balances(self.pagelines[p][self.line])
-                    op, clos = extract_balance_forwards(
-                        self.pagelines[p][self.line]
-                    )
+                    op, clos = extract_balance_forwards(self.pagelines[p][self.line])
 
                     opt = Transaction(
-                        f"01/01/{self.yr % 100}",
-                        "",
-                        op,
-                        "",
-                        desc="Balance Forward"
+                        f"01/01/{self.yr % 100}", "", op, "", desc="Balance Forward"
                     )
 
                     clost = Transaction(
-                        f"12/31/{self.yr % 100}",
-                        "",
-                        clos,
-                        "",
-                        desc="Ending Balance"
+                        f"12/31/{self.yr % 100}", "", clos, "", desc="Ending Balance"
                     )
 
                     self.balances[header] = [deb, cred]
@@ -553,18 +548,15 @@ class GLProcessor:
             self.line_loop()
 
         # Drop all headers with no transactions
-        self.transactions = {
-            k: v for k, v in self.transactions.items() if len(v) > 0
-        }
+        self.transactions = {k: v for k, v in self.transactions.items() if len(v) > 0}
 
-        self.valid = {
-            k: v for k, v in self.valid.items() if k in self.transactions
-        }
+        self.valid = {k: v for k, v in self.valid.items() if k in self.transactions}
 
         for h in self.transactions:
             print(f"{h}: {len(self.transactions[h])} transactions")
             print(f"Balance Forward: {self.balances[h]}" + "\n")
 
+    def postprocess(self) -> None:
         self.validate()
         self.save()
         if not self.all_valid:
@@ -578,17 +570,18 @@ class GLProcessor:
         self.save()
         print("Done.")
 
-    def save_to_excel(self, filename: Optional[str] = None) -> None:
+    def save_to_excel(self, filename: str | None = None) -> None:
         """
         Save the processed GL report to an Excel file.
         """
 
         if filename is None:
-            filename = self.filename.replace(".txt", ".xlsx")
+            input_parts = self.filename.parts
+            input_parts = input_parts[:-1] + (input_parts[-1].replace(".txt", ".xlsx"),)
+            filename = Path().joinpath(*input_parts)
 
         header_order = sorted(
-            self.transactions.keys(),
-            key=lambda x: float(self.header_numbers[x])
+            self.transactions.keys(), key=lambda x: float(self.header_numbers[x])
         )
 
         with pd.ExcelWriter(filename) as writer:
@@ -599,7 +592,7 @@ class GLProcessor:
                 # safe_header = header.replace("/", "-")
                 safe_header = self.header_numbers[header]
                 df.to_excel(writer, sheet_name=safe_header, index=False)
-            
+
             # Combine all transactions into a single sheet
             full_list = []
             for header in header_order:
@@ -614,20 +607,22 @@ class GLProcessor:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a GL report.")
     parser.add_argument(
-        "filename",
-        type=str,
-        help="The filename of the GL report to process."
+        "filename", type=Path, help="The filename of the GL report to process."
+    )
+    parser.add_argument(
+        "-o", "--output", type=Path,
+        help="Output Excel sheet. Uses the input file basename if not specified."
     )
 
     args = parser.parse_args()
-    fname = args.filename
-    yr = int(re.search(r"\d{4}", fname).group(0))
+    yr = int(re.search(r"\d{4}", str(args.filename)).group(0))
 
-    g = GLProcessor(fname, yr)
+    g = GLProcessor(args.filename, yr)
     try:
         g.process()
     except Exception:
         print(g.pagelines[g.page][g.line], g.page + 1, g.line)
         raise
 
-    g.save_to_excel()
+    g.postprocess()
+    g.save_to_excel(args.output)

@@ -194,9 +194,11 @@ def extract_amt(line: str, mul: Optional[int] = None) -> Tuple[Decimal, bool]:
         mul = 1 if len(line) < CREDIT_INDEX else -1
 
     assert mul in [-1, 1]
-
     cand = line.split()[-1].replace(",", "")
     if len(line) > CREDIT_INDEX:
+        return Decimal(re.findall(r"\d+\.\d\d", cand)[0]) * mul, True
+    elif len(line) >= CREDIT_INDEX and not re.fullmatch(r"\d+\.\d\d", cand):
+        print(f"'{line}' is ambiguous!")
         return Decimal(re.findall(r"\d+\.\d\d", cand)[0]) * mul, True
     elif re.fullmatch(r"\d+\.\d\d", cand):
         return Decimal(cand) * mul, False
@@ -271,6 +273,7 @@ GOODW = "Goodwill"
 INSUR = "Insurance"
 INCTAX = "Income Taxes"
 LEGAL = "Legal"
+LOAN = "Loan to Shareholder"
 OFFICE = "Office"
 POLIRE = "Polishing & Repair"
 PROPT = "Property Tax"
@@ -372,6 +375,7 @@ GENERICS = [
     BUTRP,
     PROPT,
     LEGAL,
+    LOAN,
     OFFICE,
     STRATA,
     UTIL,
